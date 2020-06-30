@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration status="ERROR" shutdownHook="disable">
+    <Properties>
+        <Property name="basePath">/tmp</Property>
+    </Properties>
+    <Appenders>
+        <RollingFile name="fileLogger1" fileName="${basePath}/MM2GroupOffsetSync.log" filePattern="${basePath}/mm2-utils-%d{yyyy-MM-dd}.log">
+            <PatternLayout>
+                <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+        </RollingFile>
+        <Console name="stdout" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d] (%c) - %p %m %n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="error">
+            <AppenderRef ref="stdout"/>
+        </Root>
+        <Logger name="org.apache.kafka.clients" level="warn" additivity="false">
+            <AppenderRef ref="stdout"/>
+            <AppenderRef ref="fileLogger1"/>
+        </Logger>
+        <Logger name="com.amazonaws.kafka.samples" level="info" additivity="false">
+            <AppenderRef ref="fileLogger1"/>
+            <AppenderRef ref="stdout"/>
+        </Logger>
+    </Loggers>
+</Configuration>
