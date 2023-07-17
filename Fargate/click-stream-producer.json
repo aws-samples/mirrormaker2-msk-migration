@@ -1,0 +1,107 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "kafka-producer",
+            "image": {IMAGE_URL},
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "kafka-producer-3800-tcp",
+                    "containerPort": 3800,
+                    "hostPort": 3800,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "RENGIL",
+                    "value": ""
+                },
+                {
+                    "name": "MEMBUFFCNFG",
+                    "value": ""
+                },
+                {
+                    "name": "NMTRD",
+                    "value": "8"
+                },
+                {
+                    "name": "TOPIC",
+                    "value": "click-stream"
+                },
+                {
+                    "name": "HCTABEZIS",
+                    "value": ""
+                },
+                {
+                    "name": "BROKERS",
+                    "value": {BROKER_ADDRESSES}
+                },
+                {
+                    "name": "REGION",
+                    "value": {AWS_REGION}
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "dockerLabels": {
+                "PROMETHEUS_EXPORTER_JOB_NAME": "kafka-producer-consumer",
+                "PROMETHEUS_EXPORTER_PORT": "3800"
+            },
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/kafka-producer",
+                    "awslogs-region": {AWS_REGION},
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "kafka-producer",
+    "taskRoleArn": {TASK_ROLE_ARN},
+    "executionRoleArn": {EXECUTION_ROLE_ARN},
+    "networkMode": "awsvpc",
+    "revision": 15,
+    "volumes": [],
+    "status": "ACTIVE",
+    "requiresAttributes": [
+        {
+            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+        },
+        {
+            "name": "ecs.capability.execution-role-awslogs"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.ecr-auth"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.task-iam-role"
+        },
+        {
+            "name": "ecs.capability.execution-role-ecr-pull"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+        },
+        {
+            "name": "ecs.capability.task-eni"
+        }
+    ],
+    "placementConstraints": [],
+    "compatibilities": [
+        "EC2",
+        "FARGATE"
+    ],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "2048",
+    "memory": "8192",
+    "tags": []
+}
