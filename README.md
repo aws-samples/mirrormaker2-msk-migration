@@ -1,8 +1,25 @@
 This repository accompanies the [Amazon MSK migration lab](https://amazonmsk-labs.workshop.aws/en/migration.html). 
 It includes resources used in the lab including AWS CloudFormation templates, configuration files and Java code.
 
+## Overview
 
-## Install
+### Kafka Connect workers
+
+Kafka Connect workers operate as a cluster to facilitate scalable and fault-tolerant data integration in Apache Kafka. In this setup, multiple Kafka Connect worker instances collaborate to distribute and parallelize the processing of connectors and tasks. Each worker in the cluster is responsible for executing a subset of connectors and their associated tasks, which are units of work responsible for moving data between Kafka and external systems. The workers share configuration information and coordinate through the Kafka broker to ensure a cohesive and balanced distribution of tasks across the cluster. This distributed architecture enables horizontal scaling, allowing the Kafka Connect cluster to handle increased workloads and provides resilience by redistributing tasks in the event of worker failures, thereby ensuring continuous and reliable data integration across connected systems.
+
+### Kafka connect worker configuration file
+
+The Kafka Connect worker configuration file is a crucial component in defining the behavior and settings of a Kafka Connect worker. This configuration file typically includes details such as the **Kafka bootstrap servers**, **group ID**, key and value **converters**, and specific connector configurations, allowing users to tailor the worker's behavior to their specific data integration requirements.
+
+This code example provides different configuration files based on each authentication scheme. Refer to [Configuration/workers](Configuration/workers) to view these files. 
+
+### Mirror Maker source connector configuration
+
+This file typically includes details such as connection properties, topic configurations, and any additional settings required for extracting data from the source topics and publishing it to the target Kafka cluster. Users leverage this configuration file to tailor the source connector's behavior, ensuring seamless integration and effective data ingestion from the source to Kafka. Submitting the contents of this file via a POST or PUT REST Api for the first time, starts the source connector. Further calls will update the connector configuration and restart its tasks. MM2 source connector scale horizontally by increasing the value for `task.max` configuration.
+
+This example provides distinct configuration files for each connector per each authentication scheme. Refer to [Configuration/connectors](Configuration/connectors) for more information.
+
+## Build
 
 ### Clone the repository and install the jar file.  
 
@@ -91,3 +108,44 @@ docker build . -t kafka-connect-270:latest
 
 docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
 ```
+
+## Deploy
+
+In this section, you learn how to deploy necessary docker images to your docker image repository. This code example assumes you use Amazon ECR as your container image repository. You need to setup your development environment with an identity principle attached with a policy document which allows to perform the following actions.
+
+### Push Kafka connect docker image to Amazon ECR
+
+1. Create a private Amazon ECR repository. [Creating a private repository](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html)
+
+2. Make sure docker engine is running on your development machine. 
+
+3. Push `Kafka-Connect` docker image to your private repository:
+
+```
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com
+
+    docker build -t kafka-connect-distributed .
+
+    docker tag kafka-connect-distributed:latest {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest 
+
+    docker push {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest
+```
+
+### Push Prometheus docker image to Amazon ECR
+
+1. Create another ECR repository for Prometheus
+
+2. Push `prometheus` docker image to your private repository:
+
+```
+    cd prometheus
+    
+    docker build -t prometheus .
+
+    docker tag prometheus:latest {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest 
+
+    docker push {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest
+```
+
+## Create an Amazon ECS cluster
+
