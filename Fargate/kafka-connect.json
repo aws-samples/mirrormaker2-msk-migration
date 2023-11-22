@@ -2,7 +2,7 @@
     "containerDefinitions": [
         {
             "name": "kafka-connect",
-            "image": {IMAGE_URL},
+            "image": "IMAGE_URL",
             "cpu": 0,
             "portMappings": [
                 {
@@ -28,7 +28,7 @@
                 },
                 {
                     "name": "BROKERS",
-                    "value": {BROKER_ADDRESSES}
+                    "value": "BROKER_ADDRESSES"
                 }
             ],
             "mountPoints": [],
@@ -40,16 +40,17 @@
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
+                    "awslogs-create-group": "true",
                     "awslogs-group": "/ecs/kafka-connect",
-                    "awslogs-region": {AWS_REGION},
+                    "awslogs-region": "AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             }
         }
     ],
     "family": "kafka-connect",
-    "taskRoleArn": {TASK_ROLE_ARN},
-    "executionRoleArn": {EXECUTION_ROLE_ARN},
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
     "networkMode": "awsvpc",
     "volumes": [],
     "status": "ACTIVE",
@@ -59,7 +60,7 @@
     "tags": [
         {
             "key": "Auth",
-            "value": "SASL"
+            "value": "AUTH"
         }
     ]
 }

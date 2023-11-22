@@ -12,7 +12,7 @@ RUN yum install -y epel-release &&\
     yum install -y nmap-ncat git
 
 ARG MAVEN_VERSION=3.5.4
-ARG AUTH=sasl
+ARG AUTH=iam
 
 # Maven
 RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar xzf - -C /usr/share \

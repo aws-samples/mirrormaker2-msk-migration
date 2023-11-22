@@ -29,18 +29,17 @@
                 "options": {
                     "awslogs-create-group": "true",
                     "awslogs-group": "/ecs/grafana",
-                    "awslogs-region": "us-east-1",
+                    "awslogs-region": "AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             }
         }
     ],
     "family": "grafana",
-    "taskRoleArn": {TASK_ROLE_ARN},
-    "executionRoleArn": {EXECUTION_ROLE_ARN},
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
     "networkMode": "awsvpc",
     "volumes": [],
-    "status": "ACTIVE",
     "placementConstraints": [],
     "cpu": "1024",
     "memory": "3072",
@@ -48,5 +47,8 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "tags": []
+    "tags": [{
+        "key": "name",
+        "value": "grafana"
+    }]
 }

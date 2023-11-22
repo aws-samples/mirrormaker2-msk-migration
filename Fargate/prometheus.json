@@ -2,7 +2,7 @@
     "containerDefinitions": [
         {
             "name": "prometheus",
-            "image": {PROMETHEUS_IMAGE_URL},
+            "image": "IMAGE_URL",
             "cpu": 0,
             "portMappings": [
                 {
@@ -28,7 +28,7 @@
                 "options": {
                     "awslogs-create-group": "true",
                     "awslogs-group": "/ecs/prometheus",
-                    "awslogs-region": {AWS_REGION},
+                    "awslogs-region": "AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             }
@@ -56,15 +56,15 @@
                 "options": {
                     "awslogs-create-group": "true",
                     "awslogs-group": "/ecs/prometheus-discovery",
-                    "awslogs-region": {AWS_REGION},
+                    "awslogs-region": "AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             }
         }
     ],
     "family": "prometheus",
-    "taskRoleArn": {TASK_ROLE_ARN},
-    "executionRoleArn": {EXECUTION_ROLE_ARN},
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
     "networkMode": "awsvpc",
     "volumes": [
         {
@@ -72,7 +72,6 @@
             "host": {}
         }
     ],
-    "status": "ACTIVE",
     "placementConstraints": [],
     "cpu": "2048",
     "memory": "4096",
@@ -83,5 +82,8 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "tags": []
+    "tags": [{
+        "key": "name",
+        "value": "prometheus"
+    }]
 }
