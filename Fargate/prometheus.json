@@ -42,7 +42,16 @@
             "command": [
                 "-config.write-to=/output/ecs_file_sd.yml"
             ],
-            "environment": [],
+            "environment": [
+                {
+                    "name": "JMX_EXPORTER_BROKER_LIST",
+                    "value": ""
+                },
+                {
+                    "name": "NODE_EXPORTER_BROKER_LIST",
+                    "value": ""
+                }
+            ],
             "mountPoints": [
                 {
                     "sourceVolume": "config",
