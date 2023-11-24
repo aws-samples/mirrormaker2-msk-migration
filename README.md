@@ -322,7 +322,7 @@ Exit after each command by typing `q` and press enter.
     1. Make a ssh tunnel to your Amazon EC2 bastion and specify the port your proxy is using:
 
     ```
-    ssh -i pemfile.pem ec2-user@ec2-xx-xxx-xxx-xxx.compute-1.amazonaws.com -ND 8157
+    ssh -i privatekey.pem ec2-user@ec2-xx-xxx-xxx-xxx.compute-1.amazonaws.com -ND 8157
     ```
 
     2. Navigate to [http://prometheus.monitoring:9090]([http://prometheus.monitoring:9090) and verify you can view main page
@@ -335,3 +335,38 @@ Exit after each command by typing `q` and press enter.
 
     5. Import the [Grafana/MM2-dashboard-1.json](Grafana/MM2-dashboard-1.json) monitoring dashboard
 
+6. Via a SSH tunnel or SSM connection use the bastion instance to run MM2 connectors:
+
+    1. Clone this repository on your instance
+
+    ```
+    git clone https://github.com/aws-samples/mirrormaker2-msk-migration.git
+    ```
+    2. Edit the connector json files in [configurations](Configuration/connectors) directory with your broker addresses
+    
+    3. Run the source connector, Example for IAM:
+
+    ```
+    curl -X PUT -H "Content-Type: application/json" --data @mm2-msc-iam-auth.json http://kafkaconnect.migration:8083/connectors/mm2-msc/config | jq '.'
+
+    ```
+    4. Check the status of the connector to make sure it's running:
+
+    ```
+    curl -s kafkaconnect.migration:8083/connectors/mm2-msc/status | jq .
+    ```
+
+    5. Repeat steps 3&4 for two other connectors:
+
+    ```
+    curl -X PUT -H "Content-Type: application/json" --data @mm2-cpc-iam-auth.json http://kafkaconnect.migration:8083/connectors/mm2-cpc/config | jq '.'
+
+    curl -s kafkaconnect.migration:8083/connectors/mm2-cpc/status | jq .
+
+    curl -X PUT -H "Content-Type: application/json" --data @mm2-hbc-iam-auth.json http://kafkaconnect.migration:8083/connectors/mm2-hbc/config | jq '.'
+
+    curl -s kafkaconnect.migration:8083/connectors/mm2-hbc/status | jq .
+    
+    ```
+
+7. If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs Migration Workshop](https://catalog.workshops.aws/msk-labs/en-US/migration/mirrormaker2/usingkafkaconnectgreaterorequal270/customreplautosync/migrationlab1)
