@@ -132,6 +132,7 @@ In this section, you learn how to deploy necessary docker images to your docker 
     - arn:aws:iam::aws:policy/AmazonEC2FullAccess
     - arn:aws:iam::aws:policy/AmazonECS_FullAccess
     - arn:aws:iam::aws:policy/AmazonMSKFullAccess
+    - arn:aws:iam::aws:policy/AWSGlueSchemaRegistryFullAccess
 
 * If you are using IAM authentication for connecting to Amazon MSK, find an example [Fargate/msk-iam-auth-inline-policy.json](Fargate/msk-iam-auth-inline-policy.json) inline policy
 
@@ -272,8 +273,9 @@ aws ecs create-cluster \
     sed -i "s/AWS_REGION/${AWS_REGION}/g" ./fargate/grafana.json
     sed -i "s@TASK_ROLE_ARN@${TASK_ROLE_ARN}@g" ./fargate/grafana.json
     sed -i "s@EXECUTION_ROLE_ARN@${EXECUTION_ROLE_ARN}@g" ./fargate/grafana.json
-    exit
+    
 ```
+    Type `exit` to return.
 
 3. Register the task definitions using the json files:
 
