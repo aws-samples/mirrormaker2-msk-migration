@@ -2,7 +2,7 @@
     "containerDefinitions": [
         {
             "name": "kafka-producer",
-            "image": {IMAGE_URL},
+            "image": "IMAGE_URL",
             "cpu": 0,
             "portMappings": [
                 {
@@ -16,11 +16,11 @@
             "essential": true,
             "environment": [
                 {
-                    "name": "RENGIL",
+                    "name": "LINGERMS",
                     "value": ""
                 },
                 {
-                    "name": "MEMBUFFCNFG",
+                    "name": "BUFFERMEMORY",
                     "value": ""
                 },
                 {
@@ -32,16 +32,16 @@
                     "value": "click-stream"
                 },
                 {
-                    "name": "HCTABEZIS",
+                    "name": "BATCHSIZE",
                     "value": ""
                 },
                 {
                     "name": "BROKERS",
-                    "value": {BROKER_ADDRESSES}
+                    "value": "BROKER_ADDRESSES"
                 },
                 {
                     "name": "REGION",
-                    "value": {AWS_REGION}
+                    "value": "AWS_REGION"
                 }
             ],
             "mountPoints": [],
@@ -53,16 +53,17 @@
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
+                    "awslogs-create-group": "true",
                     "awslogs-group": "/ecs/kafka-producer",
-                    "awslogs-region": {AWS_REGION},
+                    "awslogs-region": "AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             }
         }
     ],
     "family": "kafka-producer",
-    "taskRoleArn": {TASK_ROLE_ARN},
-    "executionRoleArn": {EXECUTION_ROLE_ARN},
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
     "networkMode": "awsvpc",
     "volumes": [],
     "status": "ACTIVE",
