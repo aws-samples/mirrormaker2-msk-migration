@@ -1,0 +1,74 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "kafka-producer",
+            "image": "IMAGE_URL",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "kafka-producer-3800-tcp",
+                    "containerPort": 3800,
+                    "hostPort": 3800,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "LINGERMS",
+                    "value": ""
+                },
+                {
+                    "name": "BUFFERMEMORY",
+                    "value": ""
+                },
+                {
+                    "name": "NMTRD",
+                    "value": "8"
+                },
+                {
+                    "name": "TOPIC",
+                    "value": "click-stream"
+                },
+                {
+                    "name": "BATCHSIZE",
+                    "value": ""
+                },
+                {
+                    "name": "BROKERS",
+                    "value": "BROKER_ADDRESSES"
+                },
+                {
+                    "name": "REGION",
+                    "value": "AWS_REGION"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "dockerLabels": {
+                "PROMETHEUS_EXPORTER_JOB_NAME": "kafka-producer-consumer",
+                "PROMETHEUS_EXPORTER_PORT": "3800"
+            },
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/kafka-producer",
+                    "awslogs-region": "AWS_REGION",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "kafka-producer",
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "status": "ACTIVE",
+    "placementConstraints": [],
+    "cpu": "2048",
+    "memory": "8192",
+    "tags": []
+}

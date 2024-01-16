@@ -1,0 +1,54 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "grafana",
+            "image": "grafana/grafana",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "grafana-3000-tcp",
+                    "containerPort": 3000,
+                    "hostPort": 3000,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "GF_INSTALL_PLUGINS",
+                    "value": "grafana-clock-panel"
+                }
+            ],
+            "environmentFiles": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "ulimits": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/grafana",
+                    "awslogs-region": "AWS_REGION",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "grafana",
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "cpu": "1024",
+    "memory": "3072",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "tags": [{
+        "key": "name",
+        "value": "grafana"
+    }]
+}

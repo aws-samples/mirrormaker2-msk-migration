@@ -1,0 +1,98 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "prometheus",
+            "image": "IMAGE_URL",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "prometheus-9090-tcp",
+                    "containerPort": 9090,
+                    "hostPort": 9090,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [
+                {
+                    "sourceVolume": "config",
+                    "containerPath": "/output",
+                    "readOnly": false
+                }
+            ],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/prometheus",
+                    "awslogs-region": "AWS_REGION",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        },
+        {
+            "name": "discovery",
+            "image": "tkgregory/prometheus-ecs-discovery",
+            "cpu": 0,
+            "portMappings": [],
+            "essential": false,
+            "command": [
+                "-config.write-to=/output/ecs_file_sd.yml"
+            ],
+            "environment": [
+                {
+                    "name": "JMX_EXPORTER_BROKER_LIST",
+                    "value": ""
+                },
+                {
+                    "name": "NODE_EXPORTER_BROKER_LIST",
+                    "value": ""
+                }
+            ],
+            "mountPoints": [
+                {
+                    "sourceVolume": "config",
+                    "containerPath": "/output",
+                    "readOnly": false
+                }
+            ],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/prometheus-discovery",
+                    "awslogs-region": "AWS_REGION",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "prometheus",
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
+    "networkMode": "awsvpc",
+    "volumes": [
+        {
+            "name": "config",
+            "host": {}
+        }
+    ],
+    "placementConstraints": [],
+    "cpu": "2048",
+    "memory": "4096",
+    "ephemeralStorage": {
+        "sizeInGiB": 100
+    },
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "tags": [{
+        "key": "name",
+        "value": "prometheus"
+    }]
+}

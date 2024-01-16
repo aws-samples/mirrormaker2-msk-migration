@@ -1,0 +1,66 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "kafka-connect",
+            "image": "IMAGE_URL",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "kafka-connect-8083-tcp",
+                    "containerPort": 8083,
+                    "hostPort": 8083,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                },
+                {
+                    "name": "kafka-connect-3600-tcp",
+                    "containerPort": 3600,
+                    "hostPort": 3600,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "GROUP",
+                    "value": "kafka-connect-fargate"
+                },
+                {
+                    "name": "BROKERS",
+                    "value": "BROKER_ADDRESSES"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "dockerLabels": {
+                "PROMETHEUS_EXPORTER_JOB_NAME": "kafka-connect",
+                "PROMETHEUS_EXPORTER_PORT": "3600"
+            },
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/kafka-connect",
+                    "awslogs-region": "AWS_REGION",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "kafka-connect",
+    "taskRoleArn": "TASK_ROLE_ARN",
+    "executionRoleArn": "EXECUTION_ROLE_ARN",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "status": "ACTIVE",
+    "placementConstraints": [],
+    "cpu": "1024",
+    "memory": "4096",
+    "tags": [
+        {
+            "key": "Auth",
+            "value": "AUTH"
+        }
+    ]
+}
