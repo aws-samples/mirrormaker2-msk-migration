@@ -51,64 +51,6 @@ In order to enable that, the DefaultReplicationPolicy needs to be replaced with 
 maintain the same topic name at the destination. This jar file needs to be copied into the **libs** directory of the 
 Apache Kafka installation running MM2.
 
-#### MM2GroupOffsetSync
-
-When replicating messages in topics between clusters, the offsets in topic partitions could be different 
-due to producer retries or more likely due to the fact that the retention period in the source topic could've passed 
-and messages in the source topic already deleted when replication starts. Even if the the __consumer_offsets topic is replicated, 
-the consumers, on failover, might not find the offsets at the destination.
-
-MM2 provides a facility that keeps source and destination offsets in sync. The MM2 MirrorCheckpointConnector periodically 
-emits checkpoints in the destination cluster, containing offsets for each consumer group in the source cluster. 
-The connector periodically queries the source cluster for all committed offsets from all consumer groups, filters for 
-topics being replicated, and emits a message to a topic like \<source-cluster-alias\>.checkpoints.internal in the destination cluster. 
-These offsets can then be queried and retrieved by using provided classes **RemoteClusterUtils** or **MirrorClient**. However, 
-in order for consumers to fail over seamlessly and start consuming from where they left off with no code changes, 
-the mapped offsets at the destination need to be synced with the __consumer_offsets topic at the destination. The 
-MM2GroupOffsetSync application performs this syncing periodically and checks to make sure that the consumer group is empty or dead 
-before doing the sync to make sure that the offsets are not overwritten if the consumer had failed over.
-
-The jar file accepts the following parameters:  
-
-* **-h (or --help): help to get list of parameters**
-* **-cgi (or --consumerGroupID) (Default mm2TestConsumer1)**: The Consumer Group ID of the consumer to sync offsets for.
-* **-src (or --sourceCluster) (Default msksource)**: The alias of the source cluster specified in the MM2 configuration.
-* **-pfp (or --propertiesFilePath) (Default /tmp/kafka/consumer.properties)**: Location of the producer properties file which contains information about the Apache Kafka bootstrap brokers and the location of the Confluent Schema Registry.
-* **-mtls (or --mTLSEnable)(Default false)**: Enable TLS communication between this application and Amazon MSK Apache Kafka brokers for in-transit encryption and TLS mutual authentication. If this parameter is specified, TLS is also enabled. This reads the specified properties file for SSL_TRUSTSTORE_LOCATION_CONFIG, SSL_KEYSTORE_LOCATION_CONFIG, SSL_KEYSTORE_PASSWORD_CONFIG and SSL_KEY_PASSWORD_CONFIG. Those properties need to be specified in the properties file.
-* **-ssl (or --sslEnable)(Default /tmp/kafka.client.keystore.jks)**: Enable TLS communication between this application and Amazon MSK Apache Kafka brokers for in-transit encryption.
-* **-rpc (or --replicationPolicyClass)(Default DefaultReplicationPolicy)**: The class name of the replication policy to use. Works with the custom replication policy mentioned above.
-* **-rps (or --replicationPolicySeparator)(Default ".")**: The separator to use with the DefaultReplicationPolicy between the source cluster alias and the topic name.
-* **-int (or --interval)(Default 20)**: The interval in seconds between syncs.
-* **-rf (or --runFor) (Optional)**: Number of seconds to run the producer for.
-     
-## Usage Examples
-
-### To get the list of parameters
-
-```
-java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -h
-```
-
-### Using a custom ReplicationPolicy
-
-```
-java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksource -pfp /tmp/kafka/consumer.properties_sync_dest -mtls -rpc com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy
-```
-
-### Using the DefaultReplicationPolicy
-
-```
-java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksource -pfp /tmp/kafka/consumer.properties_sync_dest -mtls
-```
-
-### Using Docker
-
-```
-docker build . -t kafka-connect-270:latest
-
-docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
-```
-
 ## Deploy
 
 
@@ -117,6 +59,8 @@ docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect
 In this section, you learn how to deploy necessary docker images to your docker image repository. This code example as the following requirements:
 
 * You are familiar with setting up Proxy to view websites hosted on the private networks. We suggest using FoxyProxy for this code example: [https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html)
+
+    * An alternative is to use a virtual desktop like [AWS WorkSpaces](https://aws.amazon.com/workspaces/) which can be deployed with VPC connectivity to access private resources.
 
 * An identity principle attached with a policy document for Amazon EC2, Amazon VPC, and Amazon ECS full access
 
@@ -372,3 +316,65 @@ Exit after each command by typing `q` and press enter.
     ```
 
 7. If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs Migration Workshop](https://catalog.workshops.aws/msk-labs/en-US/migration/mirrormaker2/usingkafkaconnectgreaterorequal270/customreplautosync/migrationlab1)
+
+
+
+## Deprecated
+### MM2GroupOffsetSync
+**Before Kafka 2.7, it was necessary to manually replicate offsets between clusters when using MirrorMaker. This section is about the considerations for pre-2.7 MirrorMaker.** Do not use this for modern MirrorMaker use cases.
+
+When replicating messages in topics between clusters, the offsets in topic partitions could be different 
+due to producer retries or more likely due to the fact that the retention period in the source topic could've passed 
+and messages in the source topic already deleted when replication starts. Even if the the __consumer_offsets topic is replicated, 
+the consumers, on failover, might not find the offsets at the destination.
+
+MM2 provides a facility that keeps source and destination offsets in sync. The MM2 MirrorCheckpointConnector periodically 
+emits checkpoints in the destination cluster, containing offsets for each consumer group in the source cluster. 
+The connector periodically queries the source cluster for all committed offsets from all consumer groups, filters for 
+topics being replicated, and emits a message to a topic like \<source-cluster-alias\>.checkpoints.internal in the destination cluster. 
+These offsets can then be queried and retrieved by using provided classes **RemoteClusterUtils** or **MirrorClient**. However, 
+in order for consumers to fail over seamlessly and start consuming from where they left off with no code changes, 
+the mapped offsets at the destination need to be synced with the __consumer_offsets topic at the destination. The 
+MM2GroupOffsetSync application performs this syncing periodically and checks to make sure that the consumer group is empty or dead 
+before doing the sync to make sure that the offsets are not overwritten if the consumer had failed over.
+
+The jar file accepts the following parameters:  
+
+* **-h (or --help): help to get list of parameters**
+* **-cgi (or --consumerGroupID) (Default mm2TestConsumer1)**: The Consumer Group ID of the consumer to sync offsets for.
+* **-src (or --sourceCluster) (Default msksource)**: The alias of the source cluster specified in the MM2 configuration.
+* **-pfp (or --propertiesFilePath) (Default /tmp/kafka/consumer.properties)**: Location of the producer properties file which contains information about the Apache Kafka bootstrap brokers and the location of the Confluent Schema Registry.
+* **-mtls (or --mTLSEnable)(Default false)**: Enable TLS communication between this application and Amazon MSK Apache Kafka brokers for in-transit encryption and TLS mutual authentication. If this parameter is specified, TLS is also enabled. This reads the specified properties file for SSL_TRUSTSTORE_LOCATION_CONFIG, SSL_KEYSTORE_LOCATION_CONFIG, SSL_KEYSTORE_PASSWORD_CONFIG and SSL_KEY_PASSWORD_CONFIG. Those properties need to be specified in the properties file.
+* **-ssl (or --sslEnable)(Default /tmp/kafka.client.keystore.jks)**: Enable TLS communication between this application and Amazon MSK Apache Kafka brokers for in-transit encryption.
+* **-rpc (or --replicationPolicyClass)(Default DefaultReplicationPolicy)**: The class name of the replication policy to use. Works with the custom replication policy mentioned above.
+* **-rps (or --replicationPolicySeparator)(Default ".")**: The separator to use with the DefaultReplicationPolicy between the source cluster alias and the topic name.
+* **-int (or --interval)(Default 20)**: The interval in seconds between syncs.
+* **-rf (or --runFor) (Optional)**: Number of seconds to run the producer for.
+     
+#### Usage Examples
+
+##### To get the list of parameters
+
+```
+java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -h
+```
+
+##### Using a custom ReplicationPolicy
+
+```
+java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksource -pfp /tmp/kafka/consumer.properties_sync_dest -mtls -rpc com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy
+```
+
+##### Using the DefaultReplicationPolicy
+
+```
+java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksource -pfp /tmp/kafka/consumer.properties_sync_dest -mtls
+```
+
+##### Using Docker
+
+```
+docker build . -t kafka-connect-270:latest
+
+docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
+```
