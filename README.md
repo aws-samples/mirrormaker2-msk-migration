@@ -21,11 +21,11 @@ This example provides distinct configuration files for each connector per each a
 
 ## Build
 
-### Clone the repository and install the jar file.  
+### Using Maven
 
-    mvn clean install -f pom.xml
-      
-Two java jar files will be created:
+```
+mvn clean install -f pom.xml
+```
 
 #### CustomMM2ReplicationPolicy
 
@@ -51,7 +51,21 @@ In order to enable that, the DefaultReplicationPolicy needs to be replaced with 
 maintain the same topic name at the destination. This jar file needs to be copied into the **libs** directory of the 
 Apache Kafka installation running MM2.
 
-## Deploy
+### Using Docker
+
+```
+docker build . -t kafka-connect-270:latest
+```
+
+A local docker images will be created. 
+
+### Running on the local computer using Docker
+
+```
+docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
+```
+
+## Deploy on Amazon ECS
 
 
 ### Prerequisites
@@ -371,10 +385,3 @@ java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksour
 java -jar MM2GroupOffsetSync-1.0-SNAPSHOT.jar -cgi mm2TestConsumer1 -src msksource -pfp /tmp/kafka/consumer.properties_sync_dest -mtls
 ```
 
-##### Using Docker
-
-```
-docker build . -t kafka-connect-270:latest
-
-docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
-```
