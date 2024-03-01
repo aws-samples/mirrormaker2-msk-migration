@@ -7,6 +7,30 @@ It includes resources used in the lab including AWS CloudFormation templates, co
 
 For more background on Kafka Connect, please see [kafka-connect](docker/kafka-connect/README.md).
 
+![](./static/kafka-migration-architecture.png)
+
+1. Kafka Connect reads from configured source cluster,
+replicating topics, consumer group offsets, and ACLs 
+1-1 to the target cluster
+
+2. ECS services are deployed privately in a multi-AZ configuration,
+with autoscaling based on task CPU to automatically scale to
+meet Kafka cluster load and ensure fault tolerance when tasks fail 
+
+3. Prometheus is used to scrape metrics from Kafka Connect
+tasks to monitor replication latency and task status over time
+
+4. Grafana is used to visualize Prometheus metrics
+
+5. Consumers can be migrated to the target cluster
+over time as topics and consumer groups are kept in sync 
+by Kafka Connect. Once consumers are migrated to the target 
+cluster, producers can migrate as well.
+
+6. Bastion host or virtual desktop are used to access private resources,
+such as configuring Kafka Connect tasks and monitoring replica lag
+in Grafana
+
 ## Deployment
 
 ### Infrastructure
