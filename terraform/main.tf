@@ -1,3 +1,43 @@
+/**
+* # Kafka Connect Example 
+* 
+* Provision MSK and ECS resources to demonstrate using Kafka 
+* Connect to migrate data between two Kafka clusters. 
+*
+* This Terraform file (`main.tf`) will provision:
+* * Two MSK clusters (source/target)
+* * The relevant security groups & configurations for MSK
+* * ECS resources for Kafka Connect, Prometheus, and Grafana
+*   * For images, only the ECR repositories for Kafka Connect and Prometheus will be provisioned
+*   * You still need to build and push the associated Docker images to the ECR repositories
+* 
+* Note that this project relies on two public images for Prometheus and Grafana. For 
+* the ECS tasks to start up, you will need to have a NAT gateway to provide internet 
+* connectivity for ECS to pull the public images.
+*
+* ## Usage
+* First, update the `main.tfvars` file with the appropriate settings for your use case (e.g. account ID, region, VPC Id etc.)
+*
+* Initialize the project:
+* ```
+* terraform init
+* ```
+* 
+* View the planned resources that will be created in your account:
+* ```
+* terraform plan -var-file main.tfvars
+* ```
+* 
+* Apply the Terraform file to create required resources:
+* ```
+* terraform apply -var-file main.tfvars
+* ```
+*
+* The apply may take up to 90 minutes while the MSK
+* clusters are created. This is normal, as the MSK clusters take
+* time to provision and configure. 
+*/
+
 variable "region" {
   type        = string
   description = "The region to create resources in."
@@ -11,6 +51,7 @@ variable "partition" {
 variable "tags" {
   type        = map(string)
   description = "Tags to apply to all resources."
+  default     = {}
 }
 variable "account-id" {
   type        = string
@@ -21,7 +62,8 @@ variable "app-shorthand-name" {
   description = "Unique app name prefix to prepend to resource names."
 }
 variable "vpc-id" {
-  type = string
+  type        = string
+  description = "The VPC to provision resources in."
 }
 
 
@@ -53,7 +95,7 @@ data "aws_subnets" "private" {
   }
 }
 
-resource "aws_security_group" "main" {
+resource "aws_security_group" "msk" {
   name        = "${local.base-name}.sg.msk"
   description = "Security group for msk clusters."
   vpc_id      = var.vpc-id
@@ -69,7 +111,7 @@ resource "aws_security_group" "main" {
     Name = "${local.base-name}.sg.msk"
   }
 }
-resource "aws_kms_key" "main" {
+resource "aws_kms_key" "msk" {
   description             = "msk KMS key."
   deletion_window_in_days = 30
   enable_key_rotation     = "true"
@@ -79,7 +121,7 @@ resource "aws_kms_key" "main" {
 }
 resource "aws_kms_alias" "alias" {
   name          = replace("alias/${local.base-name}.kms.msk", ".", "_")
-  target_key_id = aws_kms_key.main.key_id
+  target_key_id = aws_kms_key.msk.key_id
 }
 resource "aws_cloudwatch_log_group" "main" {
   for_each          = { "source" : "source", "target" : "target" }
@@ -125,7 +167,7 @@ resource "aws_msk_cluster" "main" {
         volume_size = 100
       }
     }
-    security_groups = [aws_security_group.main.id]
+    security_groups = [aws_security_group.msk.id]
     connectivity_info {
       public_access {
         type = "DISABLED"
@@ -151,7 +193,7 @@ resource "aws_msk_cluster" "main" {
   }
 
   encryption_info {
-    encryption_at_rest_kms_key_arn = aws_kms_key.main.arn
+    encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
     encryption_in_transit {
       in_cluster    = true
       client_broker = "TLS"
@@ -224,8 +266,8 @@ resource "aws_iam_policy" "ecs_task_custom_policy" {
             "s3:ListBucket",
           ],
           "Resource" : [
-            "arn:${var.partition}:s3:::${aws_s3_bucket.main.bucket}",
-            "arn:${var.partition}:s3:::${aws_s3_bucket.main.bucket}/*"
+            "arn:${var.partition}:s3:::${aws_s3_bucket.configs.bucket}",
+            "arn:${var.partition}:s3:::${aws_s3_bucket.configs.bucket}/*"
           ]
         }
       ]
@@ -722,18 +764,18 @@ resource "aws_ecs_service" "grafana" {
 }
 
 
-resource "aws_s3_bucket" "main" {
+resource "aws_s3_bucket" "configs" {
   bucket        = "${local.base-name}.configs"
   force_destroy = true
 }
-resource "aws_s3_bucket_versioning" "main-versioning" {
-  bucket = aws_s3_bucket.main.bucket
+resource "aws_s3_bucket_versioning" "configs-versioning" {
+  bucket = aws_s3_bucket.configs.bucket
   versioning_configuration {
     status = "Enabled"
   }
 }
-resource "aws_s3_bucket_server_side_encryption_configuration" "main-encryption" {
-  bucket = aws_s3_bucket.main.bucket
+resource "aws_s3_bucket_server_side_encryption_configuration" "configs-encryption" {
+  bucket = aws_s3_bucket.configs.bucket
   rule {
     bucket_key_enabled = true
     apply_server_side_encryption_by_default {
@@ -741,15 +783,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "main-encryption" 
     }
   }
 }
-resource "aws_s3_bucket_public_access_block" "main-block" {
-  bucket                  = aws_s3_bucket.main.bucket
+resource "aws_s3_bucket_public_access_block" "configs-block" {
+  bucket                  = aws_s3_bucket.configs.bucket
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
-resource "aws_s3_object" "connector-cpc" {
-  bucket = aws_s3_bucket.main.bucket
+resource "aws_s3_object" "connector-config-cpc" {
+  bucket = aws_s3_bucket.configs.bucket
   key    = "connector/mm2-cpc-iam-auth.json"
   content = jsonencode({
     "name" : "mm2-cpc",
@@ -777,8 +819,8 @@ resource "aws_s3_object" "connector-cpc" {
     "target.cluster.sasl.client.callback.handler.class" : "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
   })
 }
-resource "aws_s3_object" "connector-hbc" {
-  bucket = aws_s3_bucket.main.bucket
+resource "aws_s3_object" "connector-config-hbc" {
+  bucket = aws_s3_bucket.configs.bucket
   key    = "connector/mm2-hbc-iam-auth.json"
   content = jsonencode({
     "name" : "mm2-hbc",
@@ -805,8 +847,8 @@ resource "aws_s3_object" "connector-hbc" {
     "target.cluster.sasl.client.callback.handler.class" : "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
   })
 }
-resource "aws_s3_object" "connector-msc" {
-  bucket = aws_s3_bucket.main.bucket
+resource "aws_s3_object" "connector-config-msc" {
+  bucket = aws_s3_bucket.configs.bucket
   key    = "connector/mm2-msc-iam-auth.json"
   content = jsonencode({
     "name" : "mm2-msc",
@@ -857,8 +899,8 @@ resource "aws_s3_object" "connector-msc" {
     "target.cluster.sasl.client.callback.handler.class" : "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
   })
 }
-resource "aws_s3_object" "worker" {
-  bucket  = aws_s3_bucket.main.bucket
+resource "aws_s3_object" "worker-config" {
+  bucket  = aws_s3_bucket.configs.bucket
   key     = "worker/connect-distributed.properties"
   content = <<EOF
     bootstrap.servers=${aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam}
@@ -885,4 +927,5 @@ resource "aws_s3_object" "worker" {
     producer.sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
     EOF
 }
+
 
