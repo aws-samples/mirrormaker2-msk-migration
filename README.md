@@ -1,78 +1,39 @@
-This repository accompanies the [Amazon MSK migration lab](https://amazonmsk-labs.workshop.aws/en/migration.html). 
-It includes resources used in the lab including AWS CloudFormation templates, configuration files and Java code.
+# MSK Migration Resources
+
+This repository accompanies the [Amazon MSK migration lab](https://amazonmsk-labs.workshop.aws/en/migration.html).  
+It includes resources used in the lab including AWS CloudFormation templates, configuration files and Java code. This repository differs from the lab in deploying MirrorMaker on ECS Fargate for improved resilience, scalability, and maintainability.  
 
 ## Overview
 
-### Kafka Connect workers
+For more background on Kafka Connect, please see [kafka-connect](docker/kafka-connect/README.md).
 
-Kafka Connect workers operate as a cluster to facilitate scalable and fault-tolerant data integration in Apache Kafka. In this setup, multiple Kafka Connect worker instances collaborate to distribute and parallelize the processing of connectors and tasks. Each worker in the cluster is responsible for executing a subset of connectors and their associated tasks, which are units of work responsible for moving data between Kafka and external systems. The workers share configuration information and coordinate through the Kafka broker to ensure a cohesive and balanced distribution of tasks across the cluster. This distributed architecture enables horizontal scaling, allowing the Kafka Connect cluster to handle increased workloads and provides resilience by redistributing tasks in the event of worker failures, thereby ensuring continuous and reliable data integration across connected systems.
+## Deployment
 
-### Kafka connect worker configuration file
+### Infrastructure
+First, we need to build the backend infrastructure (ECS tasks, Kafka clusters, etc) for the migration tasks. We can do this either with the automated build scripts, or manually.
 
-The Kafka Connect worker configuration file is a crucial component in defining the behavior and settings of a Kafka Connect worker. This configuration file typically includes details such as the **Kafka bootstrap servers**, **group ID**, key and value **converters**, and specific connector configurations, allowing users to tailor the worker's behavior to their specific data integration requirements.
-
-This code example provides different configuration files based on each authentication scheme. Refer to [Configuration/workers](Configuration/workers) to view these files. 
-
-### Mirror Maker source connector configuration
-
-This file typically includes details such as connection properties, topic configurations, and any additional settings required for extracting data from the source topics and publishing it to the target Kafka cluster. Users leverage this configuration file to tailor the source connector's behavior, ensuring seamless integration and effective data ingestion from the source to Kafka. Submitting the contents of this file via a POST or PUT REST Api for the first time, starts the source connector. Further calls will update the connector configuration and restart its tasks. MM2 source connector scale horizontally by increasing the value for `task.max` configuration.
-
-This example provides distinct configuration files for each connector per each authentication scheme. Refer to [Configuration/connectors](Configuration/connectors) for more information.
-
-## Build
-
-### Using Maven
+#### Option 1: Automated Infrastructure Build
+The majority of the required infrastructure for this example can be built and deployed using the Terraform source located in [terraform/](./terraform/README.md). The only thing not provisioned in the Terraform example are the VPC to deploy in, and the build/push of the Docker images. After the Terraform has been deployed, the images can be automatically built using the provided [build script](docker/build.sh) to build and push to ECR.
 
 ```
-mvn clean install -f pom.xml
+cd terraform/
+terraform init
+terraform apply -var-file main.tfvars
+
+cd -
+cd docker/
+./build.sh 012345678910 us-east-1
 ```
 
-#### CustomMM2ReplicationPolicy
+Finally, you will need to deploy the Kafka Connect tasks. 
 
-This jar file is related to the use of [Kafka MirrorMaker2](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0) in the lab to migrate a self-managed Apache Kafka cluster 
-to [Amazon MSK](https://aws.amazon.com/msk/). 
+#### Option 2: Manual Infrastructure Build
 
-MirrorMaker v2 (MM2), which ships as part of Apache Kafka in version 2.4.0 and above, detects and 
-replicates topics, topic partitions, topic configurations and topic ACLs to the destination cluster that matches a regex topic pattern. 
-Further, it checks for new topics that matches the topic pattern or changes to configurations and ACLs at regular configurable intervals. 
-The topic pattern can also be dynamically changed by changing the configuration of the MirrorSourceConnector. 
-Therefore MM2 can be used to migrate topics and topic data to the destination cluster and keep them in sync.
-                   
-In order to differentiate topics between the source and destination, MM2 utilizes a **ReplicationPolicy**. 
-The **DefaultReplicationPolicy** implementation uses a **\<source-cluster-alias\>.\<topic\>** naming convention as described 
-in [KIP-382](https://cwiki.apachorg/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0#KIP-382:MirrorMaker2.0-RemoteTopics,Partitions).The consumer, 
-when it starts up will subscribe to the replicated topic based on the topic pattern specified which should account for 
-both the source topic and the replicated topic names. This behavior is designed to account for use cases which need to run multiple 
-Apache Kafka clusters and keep them in sync for High Availability/Disaster Recovery and prevent circular replication of topics.
+##### Prerequisites
 
-In migration scenarios, it might be useful to have the same topic names in the destination as the source as there is no 
-failback requirement and the replication is only way from the self-managed Apache Kafka cluster to Amazon MSK. 
-In order to enable that, the DefaultReplicationPolicy needs to be replaced with a CustomReplicationPolicy which would 
-maintain the same topic name at the destination. This jar file needs to be copied into the **libs** directory of the 
-Apache Kafka installation running MM2.
+In this section, you learn how to deploy necessary docker images to your docker image repository. This code example as the following requirements. 
 
-### Using Docker
-
-```
-docker build . -t kafka-connect-270:latest
-```
-
-A local docker images will be created. 
-
-### Running on the local computer using Docker
-
-```
-docker run --rm -p 3600:3600 -e BROKERS=localhost:9092 -e GROUP=my-kafka-connect kafka-connect-270:latest
-```
-
-## Deploy on Amazon ECS
-
-
-### Prerequisites
-
-In this section, you learn how to deploy necessary docker images to your docker image repository. This code example as the following requirements:
-
-* You are familiar with setting up Proxy to view websites hosted on the private networks. We suggest using FoxyProxy for this code example: [https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html)
+* You are familiar with setting up Proxy to view websites hosted on the private networks. We suggest using FoxyProxy for this code example: [https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html). This setup will require an Amazon EC2 bastion host with SSM or SSH connectivity from your local machine.
 
     * An alternative is to use a virtual desktop like [AWS WorkSpaces](https://aws.amazon.com/workspaces/) which can be deployed with VPC connectivity to access private resources.
 
@@ -92,21 +53,20 @@ In this section, you learn how to deploy necessary docker images to your docker 
     - arn:aws:iam::aws:policy/AmazonMSKFullAccess
     - arn:aws:iam::aws:policy/AWSGlueSchemaRegistryFullAccess
 
-* If you are using IAM authentication for connecting to Amazon MSK, find an example [Fargate/msk-iam-auth-inline-policy.json](Fargate/msk-iam-auth-inline-policy.json) inline policy
+* If you are using IAM authentication for connecting to Amazon MSK, find an example [examples/task-definitions/msk-iam-auth-inline-policy.json](examples/task-definitions/msk-iam-auth-inline-policy.json) inline policy
 
 * If you want to use IAM authentication for Amazon MSK, attach the [required permissions](https://docs.aws.amazon.com/msk/latest/developerguide/security_iam_id-based-policy-examples.html) as a separate IAM policy document to your ECS task execution role
 
-* Amazon EC2 bastion host with SSM or SSH connectivity from your local machine
 
-### Push Kafka connect docker image to Amazon ECR
+##### Push Kafka connect docker image to Amazon ECR
 
-**Important**
-
-1. Create a private Amazon ECR repository. [Creating a private repository](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html)
+1. Create a private Amazon ECR repository. See [Creating a private repository](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html)  to create.
 
 2. Make sure docker engine is running on your development machine. 
 
-3. Push `Kafka-Connect` docker image to your private repository:
+3. Push `Kafka-Connect` docker image to your private repository.
+
+    **Important:** Our ECS task requires an ARM x86 based image. If you are running docker on an AMD host (such as an Apple computer), please build the image explicitly specifying an ARM build: `DOCKER_DEFAULT_PLATFORM="linux/amd64" docker build .` 
 
     ```
     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com
@@ -119,11 +79,11 @@ In this section, you learn how to deploy necessary docker images to your docker 
     docker push {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest
     ```
 
-### Push Prometheus docker image to Amazon ECR
+##### Push Prometheus docker image to Amazon ECR
 
-1. Create another ECR repository for Prometheus
+1. Create another ECR repository for Prometheus.
 
-2. Push `prometheus` docker image to your private repository:
+2. Push `prometheus` docker image to your private repository.
 
     ```
     cd prometheus
@@ -135,13 +95,13 @@ In this section, you learn how to deploy necessary docker images to your docker 
     docker push {AWS Account ID}.dkr.ecr.us-east-1.amazonaws.com/{Private repository name}:latest
     ```
 
-## Create an Amazon ECS cluster
+##### Create an Amazon ECS cluster
 
 The applications we are about to deploy need connectivity from your local machine. Depending on how you connect to your internal AWS resources the setup may vary. This code example assumes you're connection from the internet. For simplicity we use SSH tunnel via a local proxy. For more information about creating an SSH tunnel, see [Option 2, part 1: Set up an SSH tunnel to the primary node using dynamic port forwarding](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ssh-tunnel.html). 
 
-Alternatively you can setup an internet facing load lancer and assign it with a custom domain name.
+Alternatively you can setup an internet facing load lancer and assign it with a custom domain name, or use a virtual desktop with Amazon WorkSpaces.
 
-### Step 1: Create the Service Discovery resources in AWS Cloud Map
+##### Step 1: Create the Service Discovery resources in AWS Cloud Map
 
 Follow these steps to create your service discovery namespace and service discovery service:
 
@@ -187,7 +147,7 @@ aws servicediscovery create-service \
       --health-check-custom-config FailureThreshold=1
 ```
 
-### Step 2: Create the Amazon ECS resources
+##### Step 2: Create the Amazon ECS resources
 
 Follow these steps to create your Amazon ECS cluster, task definition, and service:
 
@@ -211,9 +171,9 @@ aws ecs create-cluster \
     export EXECUTION_ROLE_ARN=$TASK_ROLE_ARN
     export AUTH=IAM # accepted values: [SASL/IAM/TLS]
 
-    docker run -i --rm -v ./Fargate:/fargate -e KAFKA_CONNECT_IMAGE_URL=$KAFKA_CONNECT_IMAGE_URL -e BROKER_ADDRESSES=$BROKER_ADDRESSES -e AWS_REGION=$AWS_REGION -e TASK_ROLE_ARN=$TASK_ROLE_ARN -e EXECUTION_ROLE_ARN=$EXECUTION_ROLE_ARN -e AUTH=$AUTH centos bash
+    docker run -i --rm -v ./examples/task-definitions/:/fargate -e KAFKA_CONNECT_IMAGE_URL=$KAFKA_CONNECT_IMAGE_URL -e BROKER_ADDRESSES=$BROKER_ADDRESSES -e AWS_REGION=$AWS_REGION -e TASK_ROLE_ARN=$TASK_ROLE_ARN -e EXECUTION_ROLE_ARN=$EXECUTION_ROLE_ARN -e AUTH=$AUTH centos bash
 
-    cp ./Fargate/kafka-connect.json ./Fargate/kafka-connect.json.back
+    cp ./fargate/kafka-connect.json ./fargate/kafka-connect.json.back
 
     sed -i "s@IMAGE_URL@${KAFKA_CONNECT_IMAGE_URL}@g" ./fargate/kafka-connect.json
     sed -i "s/BROKER_ADDRESSES/${BROKER_ADDRESSES}/g" ./fargate/kafka-connect.json
@@ -239,13 +199,13 @@ aws ecs create-cluster \
 
 ```
     aws ecs register-task-definition \
-      --cli-input-json file://./Fargate/kafka-connect.json
+      --cli-input-json file://./examples/task-definitions/kafka-connect.json
 
     aws ecs register-task-definition \
-      --cli-input-json file://./Fargate/prometheus.json
+      --cli-input-json file://./examples/task-definitions/prometheus.json
 
     aws ecs register-task-definition \
-      --cli-input-json file://./Fargate/grafana.json
+      --cli-input-json file://./examples/task-definitions/grafana.json
 ```
 
 Exit after each command by typing `q` and press enter.
@@ -276,47 +236,62 @@ Exit after each command by typing `q` and press enter.
 
     11. Repeat the same steps for `grafana` and `prometheus`. Keep the auto-scaling disabled as these applications are setup in a standalone mode
 
+### Application and Monitoring
+Once the infrastructure is deployed and our ECS tasks reach the RUNNING state, we can set up the monitoring and MirrorMaker tasks. To access the ECS tasks, ensure you have an SSH tunnel/proxy running to set up the connectivity, or use a bastion host / Amazon WorkSpaces virtual desktop.
 
-5. Once confirmed all services are in `Running` state, you can begin setting up your monitoring:
+To make a ssh tunnel to your Amazon EC2 bastion and specify the port your proxy is using:
 
-    1. Make a ssh tunnel to your Amazon EC2 bastion and specify the port your proxy is using:
+```
+ssh -i privatekey.pem ec2-user@ec2-xx-xxx-xxx-xxx.compute-1.amazonaws.com -ND 8157
+```
 
-    ```
-    ssh -i privatekey.pem ec2-user@ec2-xx-xxx-xxx-xxx.compute-1.amazonaws.com -ND 8157
-    ```
+#### Grafana/Prometheus
 
-    2. Navigate to [http://prometheus.monitoring:9090]([http://prometheus.monitoring:9090) and verify you can view main page
+    1. Navigate to [http://prometheus.monitoring:9090]([http://prometheus.monitoring:9090) and verify you can view main page. Note that this URL may differ if you used the automated build - the URLs for these services can be found in the terraform outputs.
 
-    3. Navigate to [http://graphana.monitoring:3000](http://graphana.monitoring:3000) and verify you can view dashboard
+    2. Navigate to [http://graphana.monitoring:3000](http://graphana.monitoring:3000) and verify you can view dashboard
 
-    4. The default username and password is `admin`
+        * The default username and password is `admin`
 
-    5. Add a new source: 1- Select Prometheus as type 2- Enter: `http://prometheus.monitoring:9090` as URL 3-Click **Test and Save** button
+    3. Add a new source: 
+    
+        1. Select Prometheus as type 
+        2. Enter: `http://prometheus.monitoring:9090` as URL 3-Click **Test and Save** button
 
-    5. Import the [Grafana/MM2-dashboard-1.json](Grafana/MM2-dashboard-1.json) monitoring dashboard
+    4. Import the [examples/grafana/MM2-dashboard-1.json](examples/grafana/MM2-dashboard-1.json) monitoring dashboard
 
-6. Via a SSH tunnel or SSM connection use the bastion instance to run MM2 connectors:
+#### Kafka Connect MirrorMaker Tasks
 
-    1. Clone this repository on your instance
+1. If you used the manual build, clone this repository on your instance
 
     ```
     git clone https://github.com/aws-samples/mirrormaker2-msk-migration.git
     ```
-    2. Edit the connector json files in [configurations](Configuration/connectors) directory with your broker addresses
+
+    If you used the automated build, copy the configured task definitions from S3 to your instance - the S3 URIs for these files can be found in the terraform outputs:
+
+    ```
+    aws s3 cp s3://my-config-bucket/connector/mm2-msc-iam-auth.json .
+    aws s3 cp s3://my-config-bucket/connector/mm2-hbc-iam-auth.json .
+    aws s3 cp s3://my-config-bucket/connector/mm2-cpc-iam-auth.json .
+    ```
+
+2. Edit the connector json files in [configurations](docker/kafka-connect/Configuration/connectors) directory with your broker addresses if not already populated.
     
-    3. Run the source connector, Example for IAM:
+3. Run the source connector, Example for IAM:
 
     ```
     curl -X PUT -H "Content-Type: application/json" --data @mm2-msc-iam-auth.json http://kafkaconnect.migration:8083/connectors/mm2-msc/config | jq '.'
 
     ```
-    4. Check the status of the connector to make sure it's running:
+
+4. Check the status of the connector to make sure it's running:
 
     ```
     curl -s kafkaconnect.migration:8083/connectors/mm2-msc/status | jq .
     ```
 
-    5. Repeat steps 3&4 for two other connectors:
+5. Repeat steps 3&4 for two other connectors:
 
     ```
     curl -X PUT -H "Content-Type: application/json" --data @mm2-cpc-iam-auth.json http://kafkaconnect.migration:8083/connectors/mm2-cpc/config | jq '.'
@@ -329,4 +304,12 @@ Exit after each command by typing `q` and press enter.
     
     ```
 
-7. If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs Migration Workshop](https://catalog.workshops.aws/msk-labs/en-US/migration/mirrormaker2/usingkafkaconnectgreaterorequal270/customreplautosync/migrationlab1)
+If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs Migration Workshop](https://catalog.workshops.aws/msk-labs/en-US/migration/mirrormaker2/usingkafkaconnectgreaterorequal270/customreplautosync/migrationlab1)
+
+## FAQ
+
+### Why not use MSK Connect?
+We choose to run Kafka Connect on ECS to deploy MirrorMaker for this use case instead of MSK Connect. There are two main reasons for this:
+
+1. For a migration use case, we want to use a custom replication policy JAR to change how MirrorMaker names topics in the replicated cluster. Due to the JAR naming conventions, MSK Connect will not recognize our custom replication policy, and therefore won't allow our custom topic naming logic.
+2. MSK Connect doesn't allow us to monitor detailed Prometheus metrics for the MirrorMaker tasks. Because we value monitoring these metrics, we deploy in ECS where we can scrape Prometheus metrics exposed by Kafka Connect.

@@ -928,4 +928,35 @@ resource "aws_s3_object" "worker-config" {
     EOF
 }
 
-
+output "target_bootstrap_brokers_sasl_iam" {
+  value       = aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam
+  description = "The bootstrap broker URI for the target cluster using IAM authentication."
+}
+output "source_bootstrap_brokers_sasl_iam" {
+  value       = aws_msk_cluster.main["source"].bootstrap_brokers_sasl_iam
+  description = "The bootstrap broker URI for the source cluster using IAM authentication."
+}
+output "msc_connector_config_uri" {
+  value       = "s3://${aws_s3_bucket.configs.bucket}/${aws_s3_object.connector-config-msc.id}"
+  description = "The S3 URI for the MirrorMaker connector task configuration."
+}
+output "hbc_connector_config_uri" {
+  value       = "s3://${aws_s3_bucket.configs.bucket}/${aws_s3_object.connector-config-hbc.id}"
+  description = "The S3 URI for the heartbeat connector task configuration."
+}
+output "cpc_connector_config_uri" {
+  value       = "s3://${aws_s3_bucket.configs.bucket}/${aws_s3_object.connector-config-cpc.id}"
+  description = "The S3 URI for the checkpoint connector task configuration."
+}
+output "grafana_uri" {
+  value       = "http://${aws_service_discovery_service.grafana.name}.${aws_service_discovery_private_dns_namespace.main.name}:3000/"
+  description = "The URL for the Grafana ECS deployment."
+}
+output "prometheus_uri" {
+  value       = "http://${aws_service_discovery_service.prometheus.name}.${aws_service_discovery_private_dns_namespace.main.name}:9090/"
+  description = "The URL for the Prometheus ECS deployment."
+}
+output "kafka_connect_uri" {
+  value       = "http://${aws_service_discovery_service.kafka-connect.name}.${aws_service_discovery_private_dns_namespace.main.name}:8083/"
+  description = "The URL for the Kafka Connect ECS deployment."
+}

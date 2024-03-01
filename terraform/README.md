@@ -113,4 +113,13 @@ No modules.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_cpc_connector_config_uri"></a> [cpc\_connector\_config\_uri](#output\_cpc\_connector\_config\_uri) | The S3 URI for the checkpoint connector task configuration. |
+| <a name="output_grafana_uri"></a> [grafana\_uri](#output\_grafana\_uri) | The URL for the Grafana ECS deployment. |
+| <a name="output_hbc_connector_config_uri"></a> [hbc\_connector\_config\_uri](#output\_hbc\_connector\_config\_uri) | The S3 URI for the heartbeat connector task configuration. |
+| <a name="output_kafka_connect_uri"></a> [kafka\_connect\_uri](#output\_kafka\_connect\_uri) | The URL for the Kafka Connect ECS deployment. |
+| <a name="output_msc_connector_config_uri"></a> [msc\_connector\_config\_uri](#output\_msc\_connector\_config\_uri) | The S3 URI for the MirrorMaker connector task configuration. |
+| <a name="output_prometheus_uri"></a> [prometheus\_uri](#output\_prometheus\_uri) | The URL for the Prometheus ECS deployment. |
+| <a name="output_source_bootstrap_brokers_sasl_iam"></a> [source\_bootstrap\_brokers\_sasl\_iam](#output\_source\_bootstrap\_brokers\_sasl\_iam) | The bootstrap broker URI for the source cluster using IAM authentication. |
+| <a name="output_target_bootstrap_brokers_sasl_iam"></a> [target\_bootstrap\_brokers\_sasl\_iam](#output\_target\_bootstrap\_brokers\_sasl\_iam) | The bootstrap broker URI for the target cluster using IAM authentication. |
