@@ -20,7 +20,6 @@
 
   <modules>
     <module>CustomMM2ReplicationPolicy</module>
-    <module>MM2GroupOffsetSync</module>
 </modules>
 
   <build>
