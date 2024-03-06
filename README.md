@@ -9,9 +9,8 @@ For more background on Kafka Connect, please see [kafka-connect](./kafka_connect
 
 ![](./static/kafka-migration-architecture.png)
 
-1. Kafka Connect reads from configured source cluster,
-replicating topics, consumer group offsets, and ACLs 
-1-1 to the target cluster
+1. The MirrorMaker task running in Kafka Connect reads from configured source cluster,
+replicating topics, consumer group offsets, and ACLs 1-1 to the target cluster
 
 2. ECS services are deployed privately in a multi-AZ configuration,
 with autoscaling based on task CPU to automatically scale to
