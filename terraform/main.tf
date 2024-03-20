@@ -84,6 +84,23 @@ locals {
   base-name = "${var.app-shorthand-name}.${var.region}"
 }
 
+data "aws_caller_identity" "current" {
+  lifecycle {
+    # Require that account ID is consistent with current credentials
+    postcondition {
+      condition = self.account_id == var.account-id
+      error_message = join(
+        "\n",
+        [
+          "Configured account ID does not match account ID from AWS credentials.",
+          "Configured: ${var.account-id}",
+          "From credentials: ${self.account_id}",
+        ]
+      )
+    }
+  }
+}
+
 data "aws_subnets" "private" {
   filter {
     name   = "vpc-id"
@@ -92,6 +109,22 @@ data "aws_subnets" "private" {
   filter {
     name   = "map-public-ip-on-launch"
     values = ["false"]
+  }
+
+  lifecycle {
+    # Require that the user has only 2-3 private subnets for the cluster
+    postcondition {
+      condition = length(self.ids) >= 2 && length(self.ids) <= 3
+      error_message = join(
+        "\n",
+        [
+          "Invalid number of private subnets identified. Only 2 or 3 private subnets supported.",
+          "VPC: ${var.vpc-id}",
+          "Subnet Count: ${length(self.ids)}",
+          "Subnets: ${jsonencode(self.ids)}",
+        ]
+      )
+    }
   }
 }
 
