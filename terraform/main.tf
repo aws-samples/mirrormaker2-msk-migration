@@ -90,8 +90,8 @@ data "aws_subnets" "private" {
     values = [var.vpc-id]
   }
   filter {
-    name   = "tag:Name"
-    values = ["*private*"]
+    name   = "map-public-ip-on-launch"
+    values = ["false"]
   }
 }
 
@@ -153,7 +153,7 @@ resource "aws_msk_cluster" "main" {
   for_each               = { "source" : "source", "target" : "target" }
   cluster_name           = replace("${local.base-name}.msk.cluster.${each.key}", ".", "-")
   kafka_version          = "3.5.1"
-  number_of_broker_nodes = 3
+  number_of_broker_nodes = length(data.aws_subnets.private.ids)
 
   configuration_info {
     arn      = aws_msk_configuration.main.arn
