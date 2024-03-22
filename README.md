@@ -155,3 +155,35 @@ We choose to run Kafka Connect on ECS to deploy MirrorMaker for this use case in
 
 1. For a migration use case, we want to use a custom replication policy JAR to change how MirrorMaker names topics in the replicated cluster. Due to the JAR naming conventions, MSK Connect will not recognize our custom replication policy, and therefore won't allow our custom topic naming logic.
 2. MSK Connect doesn't allow us to monitor detailed Prometheus metrics for the MirrorMaker tasks. Because we value monitoring these metrics, we deploy in ECS where we can scrape Prometheus metrics exposed by Kafka Connect.
+
+### What does it cost to run this solution?
+There are a few key components to the overall cost of running Kafka Connect on ECS Fargate to run MirrorMaker2:
+
+1. Baseline ECS Costs
+
+    There are 3 ECS services recommended for running Kafka Connect and MirrorMaker2:
+
+    * Prometheus (2048 CPU, 4096 Memory per task)
+    * Grafana (1024 CPU, 3072 Memory per task)  
+    * Kafka Connect (1024 CPU, 4096 Memory per task)  
+
+    Each service may have 1 or more tasks. For Prometheus and Grafana, 2-3 tasks may be used for high availability. These services do not have a backend data store configured, and therefore aren't persistent across reboots. Adding persistent storage would increase the cost of the solution. 
+
+    The ECS costs will be based on the total number of ECS tasks and their CPU/memory configuration, as outlined in the [ECS Fargate pricing page](https://aws.amazon.com/ecs/pricing/).
+    
+2. Scaling Considerations
+
+    For Kafka Connect, the service is autoscaled based on the load in the Kafka cluster being replicated. This can be capped to a maximum task limit to limit the overall cost of the solution.
+
+    In MirrorMaker2, the Kakfa Connect tasks are used to consume from the cluster partitions. For example:
+    
+        * 10 partitions, 5 MirrorMaker2 tasks yields 2 partitions per task
+        * 10 partitions, 10 MirrorMaker2 tasks yields 1 partition per task
+        
+    ECS will autoscale the number of ECS tasks, and therefore MirrorMaker2 tasks, based on the CPU of the ECS tasks. At most, for a cluster with `X` partitions you can expect a total of `X` Kafka Connect tasks, and therefore `X/10` ECS tasks for Kafka Connect (assuming `tasks.max=10`).
+
+3. MSK Costs
+
+    During the migration you will use an MSK cluster for storing the replicated
+    topic data. You can use [this blog](https://aws.amazon.com/blogs/big-data/best-practices-for-right-sizing-your-apache-kafka-clusters-to-optimize-performance-and-cost/) 
+    to help with right sizing your cluster and understanding cluster costs.
