@@ -1,3 +1,6 @@
 # Project exclude paths
 /.idea/
 /dependency-reduced-pom.xml
+
+.terraform*
+terraform.tfstate*
