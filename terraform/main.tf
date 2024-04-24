@@ -65,7 +65,24 @@ variable "vpc-id" {
   type        = string
   description = "The VPC to provision resources in."
 }
+variable "source-cluster-bootstrap-broker-string" {
+  type        = string
+  description = "The source Kafka cluster bootstrap broker URI string (e.g. 'broker1:9098,broker2:9098'). If not provided a new cluster will be provisioned."
+  default     = null
+}
+variable "target-cluster-bootstrap-broker-string" {
+  type        = string
+  description = "The target Kafka cluster bootstrap broker URI string (e.g. 'broker1:9098,broker2:9098'). If not provided a new cluster will be provisioned."
+  default     = null
+}
 
+locals {
+  create_cluster = var.source-cluster-bootstrap-broker-string == null || var.target-cluster-bootstrap-broker-string == null
+  clusters_to_create = {
+    for key, create in { "source" : var.source-cluster-bootstrap-broker-string == null, "target" : var.target-cluster-bootstrap-broker-string == null } :
+    key => create if create
+  }
+}
 
 terraform {
   required_providers {
@@ -129,22 +146,28 @@ data "aws_subnets" "private" {
 }
 
 resource "aws_security_group" "msk" {
+  count       = local.create_cluster ? 1 : 0
   name        = "${local.base-name}.sg.msk"
   description = "Security group for msk clusters."
   vpc_id      = var.vpc-id
 
-  ingress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
   tags = {
     Name = "${local.base-name}.sg.msk"
   }
 }
+resource "aws_security_group_rule" "ecs-to-msk-ingress" {
+  count                    = local.create_cluster ? 1 : 0
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.msk[0].id
+  description              = "Allow ECS tasks to communicate with MSK cluster"
+  source_security_group_id = aws_security_group.ecs.id
+}
+
 resource "aws_kms_key" "msk" {
+  count                   = local.create_cluster ? 1 : 0
   description             = "msk KMS key."
   deletion_window_in_days = 30
   enable_key_rotation     = "true"
@@ -153,15 +176,17 @@ resource "aws_kms_key" "msk" {
   }
 }
 resource "aws_kms_alias" "alias" {
+  count         = local.create_cluster ? 1 : 0
   name          = replace("alias/${local.base-name}.kms.msk", ".", "_")
-  target_key_id = aws_kms_key.msk.key_id
+  target_key_id = aws_kms_key.msk[0].key_id
 }
 resource "aws_cloudwatch_log_group" "main" {
-  for_each          = { "source" : "source", "target" : "target" }
+  for_each          = local.clusters_to_create
   name              = "/aws/msk/broker/${local.base-name}-${each.key}"
   retention_in_days = 3
 }
 resource "aws_msk_configuration" "main" {
+  count             = local.create_cluster ? 1 : 0
   kafka_versions    = ["3.5.1"]
   name              = replace("${local.base-name}.msk.config", ".", "-")
   server_properties = <<EOF
@@ -183,14 +208,14 @@ resource "aws_msk_configuration" "main" {
     EOF
 }
 resource "aws_msk_cluster" "main" {
-  for_each               = { "source" : "source", "target" : "target" }
+  for_each               = local.clusters_to_create
   cluster_name           = replace("${local.base-name}.msk.cluster.${each.key}", ".", "-")
   kafka_version          = "3.5.1"
   number_of_broker_nodes = length(data.aws_subnets.private.ids)
 
   configuration_info {
-    arn      = aws_msk_configuration.main.arn
-    revision = aws_msk_configuration.main.latest_revision
+    arn      = aws_msk_configuration.main[0].arn
+    revision = aws_msk_configuration.main[0].latest_revision
   }
   broker_node_group_info {
     instance_type  = "kafka.m5.large"
@@ -200,7 +225,7 @@ resource "aws_msk_cluster" "main" {
         volume_size = 100
       }
     }
-    security_groups = [aws_security_group.msk.id]
+    security_groups = [aws_security_group.msk[0].id]
     connectivity_info {
       public_access {
         type = "DISABLED"
@@ -226,7 +251,7 @@ resource "aws_msk_cluster" "main" {
   }
 
   encryption_info {
-    encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
+    encryption_at_rest_kms_key_arn = aws_kms_key.msk[0].arn
     encryption_in_transit {
       in_cluster    = true
       client_broker = "TLS"
@@ -255,6 +280,13 @@ resource "aws_msk_cluster" "main" {
 
 }
 
+locals {
+  bootstrap_brokers = {
+    "source" : var.source-cluster-bootstrap-broker-string == null ? aws_msk_cluster.main["source"].bootstrap_brokers_sasl_iam : var.source-cluster-bootstrap-broker-string,
+    "target" : var.target-cluster-bootstrap-broker-string == null ? aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam : var.target-cluster-bootstrap-broker-string,
+  }
+}
+
 
 
 resource "aws_ecs_cluster" "main" {
@@ -278,6 +310,12 @@ resource "aws_iam_policy" "ecs_task_custom_policy" {
             "ssmmessages:OpenDataChannel"
           ],
           "Resource" : "*"
+          "Condition" : {
+            "StringEquals" : {
+              "aws:SourceAccount" : "${var.account-id}"
+            }
+          },
+          "Description" : "Allow SSM access from this account"
         },
         {
           "Sid" : "AllowIdentifyECSTasks",
@@ -299,8 +337,8 @@ resource "aws_iam_policy" "ecs_task_custom_policy" {
             "s3:ListBucket",
           ],
           "Resource" : [
-            "arn:${var.partition}:s3:::${aws_s3_bucket.configs.bucket}",
-            "arn:${var.partition}:s3:::${aws_s3_bucket.configs.bucket}/*"
+            "${aws_s3_bucket.configs.arn}",
+            "${aws_s3_bucket.configs.arn}/*"
           ]
         }
       ]
@@ -407,19 +445,32 @@ resource "aws_security_group" "ecs" {
   vpc_id      = var.vpc-id
 
   ingress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+    description = "Allow inter- and intra-ECS task communication"
   }
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+    description = "Allow inter- and intra-ECS task communication"
   }
+  tags = {
+    Name = "${local.base-name}.sg.ecs"
+  }
+}
+resource "aws_security_group_rule" "ecs-to-msk-egress" {
+  count                    = local.create_cluster ? 1 : 0
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.msk[0].id
+  description              = "Allow ECS tasks to communicate with MSK cluster"
+  source_security_group_id = aws_security_group.ecs.id
 }
 resource "aws_ecr_repository" "kafka-connect" {
   name                 = "kafka-connect"
@@ -480,7 +531,7 @@ resource "aws_ecs_task_definition" "kafka-connect" {
           },
           {
             "name" : "BROKERS",
-            "value" : aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam,
+            "value" : local.bootstrap_brokers["target"],
           }
         ],
         "mountPoints" : [],
@@ -539,7 +590,7 @@ resource "aws_ecs_service" "kafka-connect" {
 resource "aws_appautoscaling_target" "kafka-connect" {
   max_capacity       = 10
   min_capacity       = 1
-  resource_id        = split(":", aws_ecs_service.kafka-connect.id)[5]
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.kafka-connect.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }
@@ -554,6 +605,21 @@ resource "aws_appautoscaling_policy" "kafka-connect-cpu" {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
     target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+resource "aws_appautoscaling_policy" "kafka-connect-memory" {
+  name               = "kafka-connect-memory"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.kafka-connect.resource_id
+  scalable_dimension = aws_appautoscaling_target.kafka-connect.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.kafka-connect.service_namespace
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 90
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
   }
@@ -832,8 +898,8 @@ resource "aws_s3_object" "connector-config-cpc" {
     "clusters" : "msksource,mskdest",
     "source.cluster.alias" : "msksource",
     "target.cluster.alias" : "mskdest",
-    "target.cluster.bootstrap.servers" : "${aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam}",
-    "source.cluster.bootstrap.servers" : "${aws_msk_cluster.main["source"].bootstrap_brokers_sasl_iam}",
+    "target.cluster.bootstrap.servers" : "${local.bootstrap_brokers["target"]}",
+    "source.cluster.bootstrap.servers" : "${local.bootstrap_brokers["source"]}",
     "tasks.max" : "1",
     "key.converter" : " org.apache.kafka.connect.converters.ByteArrayConverter",
     "value.converter" : "org.apache.kafka.connect.converters.ByteArrayConverter",
@@ -861,8 +927,8 @@ resource "aws_s3_object" "connector-config-hbc" {
     "clusters" : "msksource,mskdest",
     "source.cluster.alias" : "msksource",
     "target.cluster.alias" : "mskdest",
-    "target.cluster.bootstrap.servers" : "${aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam}",
-    "source.cluster.bootstrap.servers" : "${aws_msk_cluster.main["source"].bootstrap_brokers_sasl_iam}",
+    "target.cluster.bootstrap.servers" : "${local.bootstrap_brokers["target"]}",
+    "source.cluster.bootstrap.servers" : "${local.bootstrap_brokers["source"]}",
     "tasks.max" : "1",
     "key.converter" : " org.apache.kafka.connect.converters.ByteArrayConverter",
     "value.converter" : "org.apache.kafka.connect.converters.ByteArrayConverter",
@@ -889,8 +955,8 @@ resource "aws_s3_object" "connector-config-msc" {
     "clusters" : "msksource,mskdest",
     "source.cluster.alias" : "msksource",
     "target.cluster.alias" : "mskdest",
-    "target.cluster.bootstrap.servers" : "${aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam}",
-    "source.cluster.bootstrap.servers" : "${aws_msk_cluster.main["source"].bootstrap_brokers_sasl_iam}",
+    "target.cluster.bootstrap.servers" : "${local.bootstrap_brokers["target"]}",
+    "source.cluster.bootstrap.servers" : "${local.bootstrap_brokers["source"]}",
     "topics" : "ExampleTopic",
     "tasks.max" : "10",
     "key.converter" : " org.apache.kafka.connect.converters.ByteArrayConverter",
@@ -936,7 +1002,7 @@ resource "aws_s3_object" "worker-config" {
   bucket  = aws_s3_bucket.configs.bucket
   key     = "worker/connect-distributed.properties"
   content = <<EOF
-    bootstrap.servers=${aws_msk_cluster.main["target"].bootstrap_brokers_sasl_iam}
+    bootstrap.servers=${local.bootstrap_brokers["target"]}
     group.id=mm2-worker
     key.converter=org.apache.kafka.connect.json.JsonConverter
     value.converter=org.apache.kafka.connect.json.JsonConverter
