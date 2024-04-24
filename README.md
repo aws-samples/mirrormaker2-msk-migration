@@ -187,3 +187,18 @@ There are a few key components to the overall cost of running Kafka Connect on E
     During the migration you will use an MSK cluster for storing the replicated
     topic data. You can use [this blog](https://aws.amazon.com/blogs/big-data/best-practices-for-right-sizing-your-apache-kafka-clusters-to-optimize-performance-and-cost/) 
     to help with right sizing your cluster and understanding cluster costs.
+
+
+### How can I fine-tune the replication settings?
+
+Issues which Delhivery and Amdoc ran into as result of frequent ACL / Config sync
+
+### My replication latency is high, what do I do?
+
+
+### How does scaling work in Kafka  Connect? How should I size the ECS tasks and `tasks.max` setting?
+* Questions about scaling horizontally * Questions about number of tasks
+
+### What metrics should I monitor to understand the health of Kafka Connect / MirrorMaker2?
+* What metrics to monitor
+
