@@ -1,0 +1,3 @@
+# Project exclude paths
+/dependency-reduced-pom.xml
+/target/
