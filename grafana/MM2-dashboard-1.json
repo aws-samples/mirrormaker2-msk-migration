@@ -8,15 +8,23 @@
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
   },
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
   "links": [],
+  "liveNow": false,
   "panels": [
     {
       "aliasColors": {},
@@ -26,7 +34,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "links": []
         },
         "overrides": []
       },
@@ -53,9 +61,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "8.2.6",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -65,9 +74,10 @@
       "steppedLine": false,
       "targets": [
         {
+          "exemplar": true,
           "expr": "kafka_connect_mirror_source_connector_replication_latency_ms_avg",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{topic}}-{{partition}}",
           "refId": "A"
         }
       ],
@@ -75,7 +85,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2-Repl-Latency-Ms-Avg",
+      "title": "MM2 Replication Latency Average (ms)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -91,7 +101,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:255",
+          "format": "ms",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -99,6 +110,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:256",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -120,7 +132,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "links": []
         },
         "overrides": []
       },
@@ -147,9 +159,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "8.2.6",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -159,9 +172,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "kafka_consumer_fetch_manager_records_lag{topic=\"ExampleTopic\"}",
+          "exemplar": true,
+          "expr": "kafka_consumer_fetch_manager_records_lag{topic!=\"connect-offsets-kafka-connect-fargate\", topic!=\"connect-status-kafka-connect-fargate\", topic!=\"connect-configs-kafka-connect-fargate\", topic!=\"mm2-offset-syncs_mskdest_internal\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{topic}}-{{partition}}",
           "refId": "A"
         }
       ],
@@ -169,7 +183,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2-Consumer-Lag",
+      "title": "MM2 Consumer Lag (ms)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -185,7 +199,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:308",
+          "format": "ms",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -193,6 +208,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:309",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -214,7 +230,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "links": []
         },
         "overrides": []
       },
@@ -241,9 +257,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "8.2.6",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -253,9 +270,10 @@
       "steppedLine": false,
       "targets": [
         {
+          "exemplar": true,
           "expr": "kafka_connect_mirror_source_connector_record_age_ms_avg",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{topic}}-{{partition}}",
           "refId": "A"
         }
       ],
@@ -263,7 +281,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2-Record-Age-Ms-Avg",
+      "title": "MM2 Source Record Ages (ms)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -279,7 +297,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:202",
+          "format": "ms",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -287,6 +306,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:203",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -308,7 +328,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "links": []
         },
         "overrides": []
       },
@@ -335,9 +355,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "8.2.6",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -347,9 +368,10 @@
       "steppedLine": false,
       "targets": [
         {
+          "exemplar": true,
           "expr": "kafka_consumer_fetch_manager_fetch_latency_avg",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{clientId}}",
           "refId": "A"
         }
       ],
@@ -357,7 +379,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2-Consumer-Fetch-Latency",
+      "title": "MM2 Consumer Fetch Latency (ms)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -379,7 +401,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:361",
+          "format": "ms",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -387,6 +410,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:362",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -408,7 +432,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "links": []
         },
         "overrides": []
       },
@@ -435,9 +459,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "8.2.6",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -447,12 +472,14 @@
       "steppedLine": false,
       "targets": [
         {
+          "exemplar": true,
           "expr": "kafka_connect_source_task_source_record_active_count{connector!=\"mm2-hbc\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{ connector }}-{{task}}",
           "refId": "A"
         },
         {
+          "exemplar": true,
           "expr": "kafka_consumer_incoming_byte_total{clientId=~\"consumer-mm2-msc-cons-[0-9]+\"}/1000000",
           "interval": "",
           "legendFormat": "",
@@ -463,7 +490,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2-Source-Task",
+      "title": "MM2 Source Task Record Counts",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -479,6 +506,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:414",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -487,6 +515,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:415",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -501,20 +530,20 @@
       }
     }
   ],
-  "refresh": false,
-  "schemaVersion": 25,
+  "refresh": "5s",
+  "schemaVersion": 32,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "MM2",
   "uid": "PEX7STkMk",
-  "version": 7
+  "version": 3
 }
