@@ -211,9 +211,9 @@ aws ecs create-cluster \
     export EXECUTION_ROLE_ARN=$TASK_ROLE_ARN
     export AUTH=IAM # accepted values: [SASL/IAM/TLS]
 
-    docker run -i --rm -v ./Fargate:/fargate -e KAFKA_CONNECT_IMAGE_URL=$KAFKA_CONNECT_IMAGE_URL -e BROKER_ADDRESSES=$BROKER_ADDRESSES -e AWS_REGION=$AWS_REGION -e TASK_ROLE_ARN=$TASK_ROLE_ARN -e EXECUTION_ROLE_ARN=$EXECUTION_ROLE_ARN -e AUTH=$AUTH centos bash
+    docker run -i --rm -v $(pwd)/Fargate:/fargate -e KAFKA_CONNECT_IMAGE_URL=$KAFKA_CONNECT_IMAGE_URL -e BROKER_ADDRESSES=$BROKER_ADDRESSES -e AWS_REGION=$AWS_REGION -e TASK_ROLE_ARN=$TASK_ROLE_ARN -e EXECUTION_ROLE_ARN=$EXECUTION_ROLE_ARN -e AUTH=$AUTH --user root centos bash
 
-    cp ./Fargate/kafka-connect.json ./Fargate/kafka-connect.json.back
+    cp ./fargate/kafka-connect.json ./fargate/kafka-connect.json.back
 
     sed -i "s@IMAGE_URL@${KAFKA_CONNECT_IMAGE_URL}@g" ./fargate/kafka-connect.json
     sed -i "s/BROKER_ADDRESSES/${BROKER_ADDRESSES}/g" ./fargate/kafka-connect.json
