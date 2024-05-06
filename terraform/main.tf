@@ -638,18 +638,6 @@ resource "aws_ecr_repository" "prometheus" {
     encryption_type = "AES256"
   }
 }
-resource "aws_ecr_repository" "prometheus-ecs-discovery" {
-  name                 = "prometheus-ecs-discovery"
-  image_tag_mutability = "MUTABLE"
-  force_delete         = true
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-  encryption_configuration {
-    encryption_type = "AES256"
-  }
-}
 resource "aws_cloudwatch_log_group" "prometheus" {
   name              = "/ecs/prometheus"
   retention_in_days = 5
@@ -710,7 +698,7 @@ resource "aws_ecs_task_definition" "prometheus" {
       },
       {
         "name" : "discovery",
-        "image" : "${aws_ecr_repository.prometheus-ecs-discovery.repository_url}:latest",
+        "image" : "tkgregory/prometheus-ecs-discovery",
         "cpu" : 0,
         "portMappings" : [],
         "essential" : false,

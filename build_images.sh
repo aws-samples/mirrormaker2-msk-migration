@@ -26,15 +26,3 @@ DOCKER_DEFAULT_PLATFORM="linux/amd64" docker build -t "prometheus" .
 docker tag "prometheus:latest" "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/prometheus:latest"
 docker push "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/prometheus:latest"
 cd -
-
-echo "Building prometheus-ecs-discovery image"
-
-git clone https://github.com/teralytics/prometheus-ecs-discovery.git
-cd prometheus-ecs-discovery/
-sed -i.bak 's#FROM golang:#FROM public.ecr.aws/docker/library/golang:#' Dockerfile
-sed -i.bak 's#FROM alpine:#FROM public.ecr.aws/docker/library/alpine:#' Dockerfile
-DOCKER_DEFAULT_PLATFORM="linux/amd64" docker build -t "prometheus-ecs-discovery" .
-docker tag "prometheus-ecs-discovery:latest" "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/prometheus-ecs-discovery:latest"
-docker push "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/prometheus-ecs-discovery:latest"
-cd -
-rm -rf prometheus-ecs-discovery/
