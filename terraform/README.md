@@ -57,6 +57,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_appautoscaling_policy.kafka-connect-cpu](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy) | resource |
+| [aws_appautoscaling_policy.kafka-connect-memory](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy) | resource |
 | [aws_appautoscaling_target.kafka-connect](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target) | resource |
 | [aws_cloudwatch_log_group.grafana](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.kafka-connect](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
@@ -93,10 +94,13 @@ No modules.
 | [aws_s3_object.worker-config](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_security_group.ecs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group.msk](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
+| [aws_security_group_rule.ecs-to-msk-egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.ecs-to-msk-ingress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_service_discovery_private_dns_namespace.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_private_dns_namespace) | resource |
 | [aws_service_discovery_service.grafana](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_service) | resource |
 | [aws_service_discovery_service.kafka-connect](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_service) | resource |
 | [aws_service_discovery_service.prometheus](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_service) | resource |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.ecs_task](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_subnets.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets) | data source |
 
@@ -108,7 +112,9 @@ No modules.
 | <a name="input_app-shorthand-name"></a> [app-shorthand-name](#input\_app-shorthand-name) | Unique app name prefix to prepend to resource names. | `string` | n/a | yes |
 | <a name="input_partition"></a> [partition](#input\_partition) | The partition to create resources in. | `string` | `"aws"` | no |
 | <a name="input_region"></a> [region](#input\_region) | The region to create resources in. | `string` | `"us-east-1"` | no |
+| <a name="input_source-cluster-bootstrap-broker-string"></a> [source-cluster-bootstrap-broker-string](#input\_source-cluster-bootstrap-broker-string) | The source Kafka cluster bootstrap broker URI string (e.g. 'broker1:9098,broker2:9098'). If not provided a new cluster will be provisioned. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to all resources. | `map(string)` | `{}` | no |
+| <a name="input_target-cluster-bootstrap-broker-string"></a> [target-cluster-bootstrap-broker-string](#input\_target-cluster-bootstrap-broker-string) | The target Kafka cluster bootstrap broker URI string (e.g. 'broker1:9098,broker2:9098'). If not provided a new cluster will be provisioned. | `string` | `null` | no |
 | <a name="input_vpc-id"></a> [vpc-id](#input\_vpc-id) | The VPC to provision resources in. | `string` | n/a | yes |
 
 ## Outputs
