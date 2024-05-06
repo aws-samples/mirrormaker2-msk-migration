@@ -222,13 +222,6 @@ aws ecs create-cluster \
     sed -i "s@AUTH@${AUTH}@g" ./fargate/kafka-connect.json
     sed -i "s@EXECUTION_ROLE_ARN@${EXECUTION_ROLE_ARN}@g" ./fargate/kafka-connect.json
 
-    sed -i "s@IMAGE_URL@${CLICK_STREAM_PRODUCER_IMAGE_URL}@g" ./fargate/click-stream-producer.json
-    sed -i "s/BROKER_ADDRESSES/${BROKER_ADDRESSES}/g" ./fargate/click-stream-producer.json
-    sed -i "s/AWS_REGION/${AWS_REGION}/g" ./fargate/click-stream-producer.json
-    sed -i "s@TASK_ROLE_ARN@${TASK_ROLE_ARN}@g" ./fargate/click-stream-producer.json
-    sed -i "s@AUTH@${AUTH}@g" ./fargate/click-stream-producer.json
-    sed -i "s@EXECUTION_ROLE_ARN@${EXECUTION_ROLE_ARN}@g" ./fargate/click-stream-producer.json
-
     sed -i "s@IMAGE_URL@${PROMETHEUS_IMAGE_URL}@g" ./fargate/prometheus.json
     sed -i "s/AWS_REGION/${AWS_REGION}/g" ./fargate/prometheus.json
     sed -i "s@TASK_ROLE_ARN@${TASK_ROLE_ARN}@g" ./fargate/prometheus.json
