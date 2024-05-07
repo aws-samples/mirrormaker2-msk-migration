@@ -1,4 +1,4 @@
-FROM prom/prometheus
+FROM public.ecr.aws/ubuntu/prometheus
 
 EXPOSE 9090
 ADD prometheus.yaml /etc/prometheus/prometheus.yml
