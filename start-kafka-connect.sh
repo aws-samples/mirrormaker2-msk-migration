@@ -16,6 +16,6 @@ sed -i "s/GROUP/${GROUP}/g" /opt/connect-distributed.properties
 
 echo Starting Kafka connect
 
-cd /opt/kafka_2.13-2.7.0/bin
-export KAFKA_OPTS=-javaagent:/opt/jmx_prometheus_javaagent-0.13.0.jar=3600:/opt/kafka-connect.yml
+cd "/opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}/bin"
+export KAFKA_OPTS="-javaagent:/opt/jmx_prometheus_javaagent-${JMX_AGENT_VERSION}.jar=3600:/opt/kafka-connect.yml"
 ./connect-distributed.sh /opt/connect-distributed.properties
