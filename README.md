@@ -150,11 +150,12 @@ If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs 
 
 ## FAQ
 
-### Why not use MSK Connect?
-We choose to run Kafka Connect on ECS to deploy MirrorMaker for this use case instead of MSK Connect. There are two main reasons for this:
+### When should I use MirrorMaker2?
+There are three main use cases for MirrorMaker2 in migrations:
 
-1. For a migration use case, we want to use a custom replication policy JAR to change how MirrorMaker names topics in the replicated cluster. Due to the JAR naming conventions, MSK Connect will not recognize our custom replication policy, and therefore won't allow our custom topic naming logic.
-2. MSK Connect doesn't allow us to monitor detailed Prometheus metrics for the MirrorMaker tasks. Because we value monitoring these metrics, we deploy in ECS where we can scrape Prometheus metrics exposed by Kafka Connect.
+1. **When you want to support any authentication mode** - MirrorMaker2 on ECS Fargate can support any Kafka cluster authentication mode, and supports Kafka clusters that are on-prem, self-managed on EC2, or 3rd party hosted.
+2. **When you want custom topic naming conventions** - In this sample we want to use a custom replication policy JAR to change how MirrorMaker2 names topics in the replicated cluster. Kafka Connect on ECS Fargate supports this.
+3. **When you want detailed monitoring of Kafka Connect** - In this sample we want to analyze the Prometheus metrics that Kafka Connect and MirrorMaker2 surface to support the migration operations. Because we value monitoring these metrics, we deploy in ECS where we can scrape Prometheus metrics exposed by Kafka Connect and fully monitor and operate MirrorMaker2 for the migration.
 
 ### What does it cost to run this solution?
 There are a few key components to the overall cost of running Kafka Connect on ECS Fargate to run MirrorMaker2:
@@ -197,7 +198,7 @@ There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** a
 
 | Config | Default Setting in Sample | Description |
 |--------|---------------------------|-------------|
-| `replication.policy.class` | `com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy` | Custom Java  code to rename topics from the source cluster to the destination cluster. Allows changing or not changing topic names to assist with producer/consumer logic in migration. |
+| `replication.policy.class` | `...CustomMM2ReplicationPolicy` | Custom Java  code to rename topics from the source cluster to the destination cluster. Allows changing or not changing topic names to assist with producer/consumer logic in migration. |
 | `tasks.max` | `4` | The overall number of Kafka Connect tasks running across all distributed worker nodes. The ideal setting for this allows for 5-10 partitions per task (e.g. `tasks.max = Total Partition Count / 5`). |
 | `replication.factor` | `3` | The replication factor for newly created topics - set based on the configuration of the destination cluster. |
 | `offset-syncs.topic.replication.factor` | `3` | The replication factor for the internal MirrorMaker topic used to replicate offsets to the destination cluster - set based on the configuration of the destination cluster. |
