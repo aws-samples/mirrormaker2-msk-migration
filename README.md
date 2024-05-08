@@ -150,8 +150,8 @@ If you need help running a sample Kafka producer / Consumer, refer to [MSK Labs 
 
 ## FAQ
 
-### When should I use MirrorMaker2?
-There are three main use cases for MirrorMaker2 in migrations:
+### When should I use this code sample to run MirrorMaker2?
+There are a few main use cases for MirrorMaker2 in migrations:
 
 1. **When you want to support any authentication mode** - MirrorMaker2 on ECS Fargate can support any Kafka cluster authentication mode, and supports Kafka clusters that are on-prem, self-managed on EC2, or 3rd party hosted.
 2. **When you want custom topic naming conventions** - In this sample we want to use a custom replication policy JAR to change how MirrorMaker2 names topics in the replicated cluster. Kafka Connect on ECS Fargate supports this.
