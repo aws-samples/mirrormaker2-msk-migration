@@ -1,6 +1,6 @@
 # MSK Migration Resources
 
-This repository accompanies the [Amazon MSK migration lab](https://amazonmsk-labs.workshop.aws/en/migration.html).
+This repository accompanies the [Amazon MSK migration lab](https://catalog.workshops.aws/msk-migration-lab/en-US).
 It includes resources used in the lab including AWS CloudFormation templates, configuration files and Java code. This repository differs from the lab in deploying MirrorMaker on ECS Fargate for improved resilience, scalability, and maintainability.  
 
 ## Overview
@@ -227,6 +227,38 @@ There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** a
 | `emit.checkpoints.interval.seconds` | `20` | Frequency of retrieving and syncing consumer group offsets to the replication topic. |
 | `sync.group.offsets.interval.seconds` | `20` | Frequency of syncing consumer group offsets in the destination cluster. |
 | `sync.group.offsets.enabled` | `true` | Whether or not to automatically sync offsets to the destination consumer groups (vs. only tracking in the offset topic). Can set to false if you want to manually manage offsets in the destination. |
+
+### How can I minimize the number of duplicate messages I process in my consumers?
+
+Consumer group offsets are replicated by the MirrorMaker2 CPC task. The offsets are replicated periodically **while 
+there is an active consumer in the souce cluster**. This means that when the consumer is stopped on the source cluster, the offsets
+will stop being replicated. This will cause duplicate messages to be consumed when the consumer starts on the target cluster. The number
+of duplicate messages will depend on the frequency of the offset sync.
+
+The offsets are replicated based on two configurations:
+
+| Config | Default Setting in Sample | Description |
+|--------|---------------------------|-------------|
+| `emit.checkpoints.interval.seconds` | `20` | Frequency of retrieving and syncing consumer group offsets to the replication topic. |
+| `sync.group.offsets.interval.seconds` | `20` | Frequency of syncing consumer group offsets in the destination cluster. |
+
+For example, if these are set to 20 seconds, then there may be up to 20 seconds of data that are consumed and committed
+on the source cluster, but not be sync'ed to the target cluster. To minimize these duplicates, you can reduce these intervals.
+Note that setting these lower can impact performance on the source/target cluster. We recommend monitoring cluster CPU/memory closely
+if you reduce these below 20 seconds.
+
+To understand the current replicated offset positions in the source/target cluster, you can use the `kafka-consumer-groups.sh` script provided by Kafka:
+
+```sh
+bin/kafka-consumer-groups.sh \
+    --describe \
+    --bootstrap-server "${CLUSTER_BROKER_CONNECTION_STRING}"  \
+    --group "${CONSUMER_GROUP_NAME}" \
+    --command-config client.properties
+```
+
+This functionality may change in the future, as the Kafka community is actively investigating methods to further reduce offset replication
+delay ([KAFKA-16364](https://issues.apache.org/jira/browse/KAFKA-16364)).
 
 ### My replication latency is high, what do I do?
 
