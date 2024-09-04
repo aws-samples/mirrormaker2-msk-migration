@@ -298,11 +298,11 @@ MirrorMaker2 should size `tasks.max` so that each MirrorSourceConnector task has
 * **Why it matters:** The number of records per task shows the aggregate throughput that Kafka Connect is processing. Each MSC task should be balanced with a similar number of overall records, and any MSC task with many more or fewer records indicates an unbalanced MirrorMaker2 replication state. This likely indicates a hot partition, or an incorrect setting for `tasks.max`.
 
 
-### I am getting `InvalidRecordException` exception with timestamp out of range error
+### Why am I getting `InvalidRecordException` with timestamp out of range error?
 
 * **What is the error:** This shows as an exception which causes the tasks fail and replication stops. It could happen right after you start the source connector, or when the connector has stopped for a long time and you restart it again. This error usually shows in logs as follows:
 
-```sh
+```
 org.apache.kafka.connect.errors.ConnectException: Unrecoverable exception from producer send callback
 	at org.apache.kafka.connect.runtime.WorkerSourceTask.maybeThrowProducerSendException(WorkerSourceTask.java:291)
 	at org.apache.kafka.connect.runtime.WorkerSourceTask.sendRecords(WorkerSourceTask.java:352)
@@ -323,7 +323,7 @@ Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 17166528753
 * **How to fix it:** If you expect to replicate the data which is older than the configured value, you would need to increase this value and restart your Kafka brokers. 
 
 
-### We are seeing negative offset lag when inspecting the `__consumer_offsets` topic for only a subset of partitions for a given consumer.
+### Why are we seeing negative offset lags, when inspecting the `__consumer_offsets` topic, for only a subset of partitions for a given consumer?
 
 * **What is causing this error:** This bug occurs when using MirrorMaker2 with `sync.group.offsets.enabled = true`
 
@@ -331,4 +331,4 @@ Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 17166528753
 
     The correct behavior when the source partition is empty would be to set the target offset to the translated offset, not literal offset, which in this case would always be 0. [More information](https://issues.apache.org/jira/browse/KAFKA-12635).
 
-* **What is the solution:** Manually resetting the consumer group or upgrading the Kafka Connect version to >=3.3 should fix this problem. 
+* **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3. 
