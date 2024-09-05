@@ -298,3 +298,37 @@ MirrorMaker2 should size `tasks.max` so that each MirrorSourceConnector task has
 * **Why it matters:** The number of records per task shows the aggregate throughput that Kafka Connect is processing. Each MSC task should be balanced with a similar number of overall records, and any MSC task with many more or fewer records indicates an unbalanced MirrorMaker2 replication state. This likely indicates a hot partition, or an incorrect setting for `tasks.max`.
 
 
+### Why am I getting `InvalidRecordException` with timestamp out of range error?
+
+* **What is the error:** This shows as an exception which causes the tasks fail and replication stops. It could happen right after you start the source connector, or when the connector has stopped for a long time and you restart it again. This error usually shows in logs as follows:
+
+```
+org.apache.kafka.connect.errors.ConnectException: Unrecoverable exception from producer send callback
+	at org.apache.kafka.connect.runtime.WorkerSourceTask.maybeThrowProducerSendException(WorkerSourceTask.java:291)
+	at org.apache.kafka.connect.runtime.WorkerSourceTask.sendRecords(WorkerSourceTask.java:352)
+	at org.apache.kafka.connect.runtime.WorkerSourceTask.execute(WorkerSourceTask.java:258)
+	at org.apache.kafka.connect.runtime.WorkerTask.doRun(WorkerTask.java:188)
+	at org.apache.kafka.connect.runtime.WorkerTask.run(WorkerTask.java:243)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 1716652875350 of message with offset 0 is out of range. The timestamp should be within [1716927328590, 1717100128590]
+
+```
+
+* **Root cause:** There is a broker level configuration `log.message.timestamp.difference.max.ms` that manages how the broker should validate the events' timestamp. If this configuration is set to a  value that is shorter than the age of the oldest message on a source topic, this error will occur.
+
+* **How to fix it:** If you expect to replicate the data which is older than the configured value, you would need to increase this value and restart your Kafka brokers. 
+
+
+### Why are we seeing negative offset lags, when inspecting the `__consumer_offsets` topic, for only a subset of partitions for a given consumer?
+
+* **What is causing this error:** This bug occurs when using MirrorMaker2 with `sync.group.offsets.enabled = true`
+
+    If a source partition is empty, but the source consumer group's offset for that partition is non-zero, then MirrorMaker sets the target consumer group's offset for that partition to the literal, not translated, offset of the source consumer group. This state can be reached if the source consumer group consumed some records that were now deleted (like by a retention policy), or if MirrorMaker replication is set to start at "latest". This bug causes the target consumer group's lag for that partition to be negative and breaks offset sync for that partition until lag is positive.
+
+    The correct behavior when the source partition is empty would be to set the target offset to the translated offset, not literal offset, which in this case would always be 0. [More information](https://issues.apache.org/jira/browse/KAFKA-12635).
+
+* **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3. 
