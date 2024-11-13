@@ -192,7 +192,17 @@ There are a few key components to the overall cost of running Kafka Connect on E
 
 ### How can I fine-tune the replication settings?
 
-There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** and **MirrorCheckpointConnector (CPC)** tasks that can be used to fine-tune replication:
+There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** and **MirrorCheckpointConnector (CPC)** tasks that can be used to fine-tune replication, in addition to producer level configurations:
+
+#### Message max sizes
+The default Kafka Connect configurations support message sizes up to 37 MB. You may also
+need to update the `message.max.bytes` broker or topic level configurations to handle large message
+sizes if required for your use case. 
+
+#### Producer level settings
+Producer-level configurations are set in the Kafka Connect settings (see [Why do I need both target.cluster.bootstrap.servers and producer.override.bootstrap.servers (but not for source and consumer)?](./README.md#why-do-i-need-both-targetclusterbootstrapservers-and-produceroverridebootstrapservers-but-not-for-source-and-consumer)). These are set when the Kafka Connect Docker image is built, using the worker configurations ([Configuration/workers/](./Configuration/workers/)). 
+
+You can override these settings with the `producer.override.*` settings in the MirrorMaker2 task configurations.
 
 #### MSC
 
