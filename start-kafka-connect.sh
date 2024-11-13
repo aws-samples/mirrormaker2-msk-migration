@@ -8,6 +8,7 @@ echo -e "\n\n\nUpdated file contents:\n $(cat /etc/hosts)"
 
 # Load custom config if provided
 if [ ! -z "${KAFKA_CONNECT_PROPERTIES_S3_URI}" ]; then
+    echo "Loading custom config from ${KAFKA_CONNECT_PROPERTIES_S3_URI}"
     aws s3 cp "${KAFKA_CONNECT_PROPERTIES_S3_URI}" /opt/connect-distributed.properties
 fi
 
@@ -22,9 +23,11 @@ sed -i "s/PASSWORD/${PASSWORD}/g" /opt/connect-distributed.properties
 # For mTLS
 # Load truststore/keystore if provided
 if [ ! -z "${KAFKA_CONNECT_TRUSTSTORE_S3_URI}" ]; then
+    echo "Loading truststore from ${KAFKA_CONNECT_TRUSTSTORE_S3_URI}"
     aws s3 cp "${KAFKA_CONNECT_TRUSTSTORE_S3_URI}" /tmp/kafka.client.truststore.jks
 fi
 if [ ! -z "${KAFKA_CONNECT_KEYSTORE_S3_URI}" ]; then
+    echo "Loading keystore from ${KAFKA_CONNECT_KEYSTORE_S3_URI}"
     aws s3 cp "${KAFKA_CONNECT_KEYSTORE_S3_URI}" /tmp/kafka.client.keystore.jks
 fi
 sed -i "s/TRUSTSTORE_PASSWORD/${TRUSTSTORE_PASSWORD}/g" /opt/connect-distributed.properties
