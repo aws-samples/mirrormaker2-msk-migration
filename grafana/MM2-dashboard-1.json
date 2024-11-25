@@ -183,7 +183,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "MM2 Consumer Lag (ms)",
+      "title": "MM2 Consumer Lag (records)",
       "tooltip": {
         "shared": true,
         "sort": 0,
