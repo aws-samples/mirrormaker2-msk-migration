@@ -192,7 +192,20 @@ There are a few key components to the overall cost of running Kafka Connect on E
 
 ### How can I fine-tune the replication settings?
 
-There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** and **MirrorCheckpointConnector (CPC)** tasks that can be used to fine-tune replication:
+There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** and **MirrorCheckpointConnector (CPC)** tasks that can be used to fine-tune replication, in addition to producer level configurations:
+
+#### Message Max Sizes
+The default Kafka Connect configurations support message sizes up to 37 MB. You may also
+need to update the `message.max.bytes` broker or topic level configurations to handle large message
+sizes if required for your use case. 
+
+#### Producer level settings
+Producer-level configurations are set in the Kafka Connect settings. These are set when the Kafka Connect Docker image is built, using the worker configurations ([Configuration/workers/](./Configuration/workers/)). 
+
+You can optionally choose to load these dynamically during startup by providing the `KAFKA_CONNECT_PROPERTIES_S3_URI` environment variable, and providing the ECS task the IAM permissions needed to read the file from the S3 bucket.
+This will cause the `connect-distributed.properties` file to be read on container startup via [start-kafka-connect.sh](./start-kafka-connect.sh).
+
+Additionally, if using mTLS authentication for the Kafka Connect cluster to store its internal state, you can load the Keystore and Truststore dynamically via S3 with the `KAFKA_CONNECT_KEYSTORE_S3_URI`and `KAFKA_CONNECT_TRUSTSTORE_S3_URI` environment variables.
 
 #### MSC
 
