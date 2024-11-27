@@ -159,7 +159,7 @@ resource "aws_security_group_rule" "ecs-to-msk-ingress" {
   count                    = local.create_cluster ? 1 : 0
   type                     = "ingress"
   from_port                = 0
-  to_port                  = 0
+  to_port                  = 65535
   protocol                 = "tcp"
   security_group_id        = aws_security_group.msk[0].id
   description              = "Allow ECS tasks to communicate with MSK cluster"
@@ -315,7 +315,6 @@ resource "aws_iam_policy" "ecs_task_custom_policy" {
               "aws:SourceAccount" : "${var.account-id}"
             }
           },
-          "Description" : "Allow SSM access from this account"
         },
         {
           "Sid" : "AllowIdentifyECSTasks",
@@ -354,6 +353,12 @@ data "aws_iam_policy_document" "ecs_task" {
       type        = "Service"
       identifiers = ["ecs-tasks.amazonaws.com"]
     }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = ["${var.account-id}"]
+    }
+
   }
 }
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -446,31 +451,21 @@ resource "aws_security_group" "ecs" {
 
   ingress {
     from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    to_port     = 65535
+    protocol    = "tcp"
     self        = true
     description = "Allow inter- and intra-ECS task communication"
   }
   egress {
     from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
-    description = "Allow inter- and intra-ECS task communication"
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound communication for e.g. ECR and MSK traffic"
   }
   tags = {
     Name = "${local.base-name}.sg.ecs"
   }
-}
-resource "aws_security_group_rule" "ecs-to-msk-egress" {
-  count                    = local.create_cluster ? 1 : 0
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.msk[0].id
-  description              = "Allow ECS tasks to communicate with MSK cluster"
-  source_security_group_id = aws_security_group.ecs.id
 }
 resource "aws_ecr_repository" "kafka-connect" {
   name                 = "kafka-connect"
