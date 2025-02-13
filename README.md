@@ -345,3 +345,38 @@ Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 17166528753
     The correct behavior when the source partition is empty would be to set the target offset to the translated offset, not literal offset, which in this case would always be 0. [More information](https://issues.apache.org/jira/browse/KAFKA-12635).
 
 * **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3. 
+
+### Why do I need both `target.cluster.bootstrap.servers` and `producer.override.bootstrap.servers` (but not for `source` and `consumer`)?
+
+Kafka Connect and MirrorMaker2 use a variety of different Kafka clients
+internally for their operations. The `target.*` and `source.*` Kafka 
+client configurations are used for MirrorMaker2 operations such as 
+offset syncs, metadata management, and admin client management to 
+interact with the source/target Kafka clusters. **This includes reading
+topic data from the source cluster.**
+
+However, for the Producer client writing records to the target cluster, MirrorMaker2 uses the
+Kafka Connect "Framework" Kafka Client, which comes from the worker 
+configuration in `connect-distributed.properties`. Depending on where
+you run Kafka Connect (against the source, target, or another cluster), 
+this means that MirrorMaker2 may or may not use the right Producer
+client configuration. Setting `producer.override.*` level settings 
+ensure that no matter where Kafka Connect is running, MirrorMaker2
+will have the right client configurations for the producers. 
+
+So, we need both the `target.*` configs and `producer.override.*` configurations to make sure both the MirrorMaker2 internal clients AND the
+"framework" Kafka Connect clients are used correctly for interacting
+with the target Kafka cluster.
+
+In our examples we assume that Kafka Connect and the target cluster
+use the same authentication and encryption settings, so we only set 
+the `producer.override.bootstrap.servers` settings in the task configs.
+However, if your Kafka Connect and target cluster use different settings,
+you need to override all of the relevant client settings for the producer:
+
+```
+"producer.override.bootstrap.servers": "${TARGET_BROKERS}",
+"producer.override.security.protocol": "SASL_SSL",
+"producer.override.sasl.mechanism": "AWS_MSK_IAM",
+...
+```
