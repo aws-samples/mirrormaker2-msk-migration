@@ -5,6 +5,7 @@
     "source.cluster.alias": "msksource",
     "target.cluster.alias": "mskdest",
     "target.cluster.bootstrap.servers": "{TARGET CLUSTER BROKERS ADDRESS}",
+    "producer.override.bootstrap.servers": "{TARGET CLUSTER BROKERS ADDRESS}",
     "source.cluster.bootstrap.servers": "{SOURCE CLUSTER BROKERS ADDRESS}",
     "tasks.max": "1",
     "key.converter": " org.apache.kafka.connect.converters.ByteArrayConverter",
