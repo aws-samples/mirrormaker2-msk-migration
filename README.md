@@ -190,19 +190,62 @@ There are a few key components to the overall cost of running Kafka Connect on E
     to help with right sizing your cluster and understanding cluster costs.
 
 
+
+### Why do I need both `target.cluster.compression.type` and `producer.override.compression.type` (but not for `source` and `consumer`)?
+Kafka Connect and MirrorMaker2 use a variety of different Kafka clients
+internally for their operations. The `target.*` and `source.*` Kafka 
+client configurations are used for MirrorMaker2 operations such as 
+offset syncs, metadata management, and admin client management to 
+interact with the source/target Kafka clusters. **This includes reading
+topic data from the source cluster.**
+
+However, for the Producer client writing records to the target cluster, MirrorMaker2 uses the
+Kafka Connect "Framework" Kafka Client, which comes from the worker 
+configuration in `connect-distributed.properties`. Depending on where
+you run Kafka Connect (against the source, target, or another cluster), 
+this means that MirrorMaker2 may or may not use the right Producer
+client configuration. Setting `producer.override.*` level settings 
+ensure that no matter where Kafka Connect is running, MirrorMaker2
+will have the right client configurations for the producers. 
+
+So, we need both the `target.*` configs and `producer.override.*` configurations to make sure both the MirrorMaker2 internal clients AND the
+"framework" Kafka Connect clients are used correctly for interacting
+with the target Kafka cluster.
+
+In our examples we want to assume a set of default Producer, Consumer, and Admin client level
+settings in our interaction with Kafka clusters, so we set some `producer.override` settings for the
+`MirrorSourceConnector`. 
+
+### How do I adjust the configurations to run Kafka Connect against the source cluster, or a third cluster, instead of against the target cluster?
+Our configurations assume that Kafka Connect is run against the target cluster, as this is generally recommended
+for performance and latency reasons. For some use cases, it may make sense to run Kafka Connect against the source cluster,
+or against a third cluster (for example, if Kafka Connect doesn't have permission to create topics in the source or target cluster,
+and can only read/write messages). 
+
+In these cases, you need to modify several settings:
+
+1. Build the Kafka Connect Docker image with the right authentication method for your cluster
+2. Modify the `BROKERS` environment variable for the Kafka Connect container to use the desired Kafka cluster for Kafka Connect (e.g. the source cluster)
+3. Add producer-level override configurations in the MirrorMaker2 task configurations to match the **target** Kafka cluster:
+
+    ```
+    "producer.override.bootstrap.servers": "${TARGET_BROKERS}",
+    "producer.override.security.protocol": "SASL_SSL",
+    "producer.override.sasl.mechanism": "AWS_MSK_IAM",
+    ...
+    ```
+
+
+### How do I increase message max size limits?
+Because the producer uses the framework Kafka client, it inherits the Kafka Connect producer's settings. To override these producer-level settings, you need to adjust the `producer.override.*` MirrorMaker2 task configurations. 
+
+In addition to overriding the producer-level settings like `producer.override.max.request.size`, you may need to adjust
+topic or broker level limits for message max sizes, `message.max.bytes`, to handle large message
+sizes if required for your use case. 
+
 ### How can I fine-tune the replication settings?
 
 There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** and **MirrorCheckpointConnector (CPC)** tasks that can be used to fine-tune replication, in addition to producer level configurations:
-
-#### Message max sizes
-The default Kafka Connect configurations support message sizes up to 37 MB. You may also
-need to update the `message.max.bytes` broker or topic level configurations to handle large message
-sizes if required for your use case. 
-
-#### Producer level settings
-Producer-level configurations are set in the Kafka Connect settings (see [Why do I need both target.cluster.bootstrap.servers and producer.override.bootstrap.servers (but not for source and consumer)?](./README.md#why-do-i-need-both-targetclusterbootstrapservers-and-produceroverridebootstrapservers-but-not-for-source-and-consumer)). These are set when the Kafka Connect Docker image is built, using the worker configurations ([Configuration/workers/](./Configuration/workers/)). 
-
-You can override these settings with the `producer.override.*` settings in the MirrorMaker2 task configurations.
 
 #### MSC
 
@@ -341,4 +384,4 @@ Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 17166528753
 
     The correct behavior when the source partition is empty would be to set the target offset to the translated offset, not literal offset, which in this case would always be 0. [More information](https://issues.apache.org/jira/browse/KAFKA-12635).
 
-* **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3. 
+* **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3.
