@@ -1,17 +1,12 @@
-FROM public.ecr.aws/docker/library/centos:latest
-
-RUN cd /etc/yum.repos.d/
-RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 RUN yum install -y wget tar openssh-server openssh-clients sysstat sudo which openssl hostname
-RUN yum install -y java-17-openjdk java-17-openjdk-devel 
-RUN yum install -y epel-release &&\
-    yum install -y jq &&\
+RUN yum install -y java-17-amazon-corretto java-17-amazon-corretto-devel
+RUN yum install -y jq &&\
     yum install -y nmap-ncat git
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH=$JAVA_HOME/bin:$PATH
-    
+
 # Verify Java installation
 RUN java -version && javac -version
 
@@ -19,46 +14,13 @@ RUN java -version && javac -version
 RUN yum groupinstall -y "Development Tools" && \
     yum install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel make
 
-# Download and install Python3.12
-RUN cd /tmp && \
-    wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
-    tar xzf Python-3.12.0.tgz && \
-    cd Python-3.12.0 && \
-    ./configure --enable-optimizations && \
-    make && \
-    make altinstall && \
-    cd /tmp && \
-    rm -rf Python-3.12.0* 
-
-# Verify installation
-RUN python3.12 --version
-
-ARG MAVEN_VERSION=3.9.6
-ARG AUTH=iam
-
 # Maven
-RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar xzf - -C /usr/share \
-  && mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven \
-  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
-
-ENV MAVEN_VERSION=${MAVEN_VERSION}
-ENV M2_HOME /usr/share/maven
-ENV maven.home $M2_HOME
-ENV M2 $M2_HOME/bin
-ENV PATH $M2:$PATH
-
-
-RUN wget https://bootstrap.pypa.io/get-pip.py && \
-    python3.12 get-pip.py && \
-    rm get-pip.py
-
-# Install awscli w python3.12
-RUN pip3.12 install awscli
+RUN yum install -y maven
 
 ENV SCALA_VERSION 2.13
 ENV KAFKA_VERSION 3.7.0
-ENV MSK_IAM_AUTH_VERSION 2.1.0
-ENV JMX_AGENT_VERSION 0.9
+ENV MSK_IAM_AUTH_VERSION 2.3.0
+ENV JMX_AGENT_VERSION 1.0.1
 
 RUN yum -y update && yum -y install tar gzip wget
 RUN curl "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" | tar -zx -C /opt
@@ -78,9 +40,10 @@ WORKDIR ./CustomMM2ReplicationPolicy
 RUN mvn clean install
 
 # # Initialize the Kafka cert trust store
-RUN find /usr/lib/jvm/ -name "cacerts" -exec cp {} /tmp/kafka.client.truststore.jks \;
+RUN find -L /usr/lib/jvm/ -name "cacerts" -exec cp {} /tmp/kafka.client.truststore.jks \;
 
 # # Add worker config file
+ARG AUTH=iam
 ADD "Configuration/workers/${AUTH}/connect-distributed.properties" /opt/connect-distributed.properties
 
 RUN mv target/CustomMM2ReplicationPolicy-1.0-SNAPSHOT.jar "/opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}/libs"
