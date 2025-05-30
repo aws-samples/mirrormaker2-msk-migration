@@ -385,3 +385,32 @@ Caused by: org.apache.kafka.common.InvalidRecordException: Timestamp 17166528753
     The correct behavior when the source partition is empty would be to set the target offset to the translated offset, not literal offset, which in this case would always be 0. [More information](https://issues.apache.org/jira/browse/KAFKA-12635).
 
 * **What is the solution:** Manually resetting the consumer group offsets on target cluster, before consumers start to read from the target cluster. Or upgrading the Kafka Connect version to >=3.3.
+
+### Why are my ACLs not synchronizing from my source cluster?
+
+MirrorMaker2 replicates ACLs from the source cluster to the target cluster when `sync.topic.acls.enabled` is set to `true` in the `MirrorSourceConnector`
+configuration. However, MirrorMaker2 doesn't replicate *write* ACLs by design (for more information, see [MirrorMaker2 ACL Replication](https://lists.apache.org/thread/7tsfwf4l7x0532v0y0khjwm3f01slb5f) in the Kafka mailing list archive, and the [syncTopicAcls](https://github.com/apache/kafka/blob/trunk/connect/mirror/src/main/java/org/apache/kafka/connect/mirror/MirrorSourceConnector.java#L420-L433) method of the `MirrorSourceConnector`). This means only the read ACLs are synchronized by MirrorMaker2. 
+
+If you need to replicate write ACLs then you must do this manually outside of MirrorMaker2. For example, you can use the `kafka-acls.sh` script packaged 
+in the Kafka binaries to manage the ACLs on your cluster.
+
+Listing ACLs on the source cluster:
+
+```bash
+bin/kafka-acls.sh --bootstrap-server "${SOURCE_CLUSTER}" \
+  --command-config adminclient-configs.conf \
+  --list \
+  --topic '*'
+```
+
+Then, using that output on the target cluster:
+
+```bash
+bin/kafka-acls.sh --bootstrap-server "${TARGET_CLUSTER}" \
+  --command-config adminclient-configs.conf \
+  --add \
+  --allow-principal User:'ExampleUser' \
+  --operation 'write' \
+  --topic 'ExampleTopic' \
+  --group 'ExampleGroup'
+```
