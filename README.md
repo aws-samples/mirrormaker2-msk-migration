@@ -274,7 +274,7 @@ There are several MirrorMaker settings for the **MirrorSourceConnector (MSC)** a
 
 | Config | Default Setting in Sample | Description |
 |--------|---------------------------|-------------|
-| `tasks.max` | `1` | Should always be 1 for CPC | 
+| `tasks.max` | `1` | The overall number of Kafka Connect tasks running across all distributed worker nodes for checkpoint replication. Generally one task is sufficient for checkpoint replication, but can increase this value if you identify a need to add more checkpoint replication capacity.  | 
 | `replication.factor` | `3` | Replication factor for new topics - set based on the configuration of the destination cluster. |
 | `checkpoints.topic.replication.factor` | `3` | Replication factor for the internal offset tracking topic - set based on the configuration of the destination cluster. |
 | `emit.checkpoints.interval.seconds` | `20` | Frequency of retrieving and syncing consumer group offsets to the replication topic. |
