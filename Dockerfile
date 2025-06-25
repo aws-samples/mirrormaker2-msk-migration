@@ -23,7 +23,9 @@ ENV MSK_IAM_AUTH_VERSION 2.3.0
 ENV JMX_AGENT_VERSION 1.0.1
 
 RUN yum -y update && yum -y install tar gzip wget
-RUN curl "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" | tar -zx -C /opt
+
+#RUN curl "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" | tar -zx -C /opt
+RUN curl https://aws-streaming-artifacts.s3.us-east-1.amazonaws.com/msk-lab-resources/kafka_2.13-3.7.0.tgz | tar -zx -C /opt
 
 RUN wget "https://github.com/aws/aws-msk-iam-auth/releases/download/v${MSK_IAM_AUTH_VERSION}/aws-msk-iam-auth-${MSK_IAM_AUTH_VERSION}-all.jar"
 RUN mv "aws-msk-iam-auth-${MSK_IAM_AUTH_VERSION}-all.jar" "/opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}/libs/"
