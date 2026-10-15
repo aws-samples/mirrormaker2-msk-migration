@@ -24,8 +24,12 @@ ENV JMX_AGENT_VERSION 1.0.1
 
 RUN yum -y update && yum -y install tar gzip wget
 
-#RUN curl "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" | tar -zx -C /opt
-RUN curl https://aws-streaming-artifacts.s3.us-east-1.amazonaws.com/msk-lab-resources/kafka_2.13-3.7.0.tgz | tar -zx -C /opt
+# SHA-512 of kafka_2.13-3.7.0.tgz from https://archive.apache.org/dist/kafka/3.7.0/kafka_2.13-3.7.0.tgz.sha512
+ARG KAFKA_SHA512=b8679283a2d8dab86e7c636b2c688fe9d9e64ac437241f65ef7a1733f4d26a2bd415eefa04f09f1911373bcd2a5dbc3838c76347f68656425c09202cd290ce91
+RUN curl -fsSL -o /tmp/kafka.tgz "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" && \
+    echo "${KAFKA_SHA512}  /tmp/kafka.tgz" | sha512sum -c - && \
+    tar -zx -C /opt -f /tmp/kafka.tgz && \
+    rm /tmp/kafka.tgz
 
 RUN wget "https://github.com/aws/aws-msk-iam-auth/releases/download/v${MSK_IAM_AUTH_VERSION}/aws-msk-iam-auth-${MSK_IAM_AUTH_VERSION}-all.jar"
 RUN mv "aws-msk-iam-auth-${MSK_IAM_AUTH_VERSION}-all.jar" "/opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}/libs/"
